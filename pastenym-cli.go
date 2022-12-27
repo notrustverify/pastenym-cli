@@ -15,6 +15,7 @@ type connection struct {
 	nymClient string
 	provider  string
 	ws        websocket.Conn
+	instance  string
 }
 
 type clearObjectUser struct {
@@ -60,6 +61,7 @@ type messageReceived struct {
 
 type urlId struct {
 	Ipfs  bool   `json:"ipfs"`
+	Hash  string `json:"hash"`
 	UrlId string `json:"url_id"`
 }
 
@@ -92,8 +94,8 @@ func main() {
 	urlId := flag.String("id", "", "Specify paste url id to retrieve. Default is empty")
 
 	provider := flag.String("provider", "6y7sSj3dKp5AESnet1RQXEHmKkEx8Bv3RgwEJinGXv6J.FZfu6hNPi1hgQfu7crbXXUNLtr3qbKBWokjqSpBEeBMV@EBT8jTD8o4tKng2NXrrcrzVhJiBnKpT1bJy5CMeArt2w", "Specify the path for a file to share. Default is empty")
-
 	nymClient := flag.String("nymclient", "127.0.0.1:1977", "Nym client to connect. Default 127.0.0.1:1977")
+	instance := flag.String("instance", "pastenym.ch", "Instance where to get the paste from GUI")
 
 	public := flag.Bool("public", true, "Set the paste to public, i.e without encryption. Default is private")
 	ipfs := flag.Bool("ipfs", false, "Specify if the text to share is stored on IPFS. Default is false")
@@ -114,6 +116,7 @@ func main() {
 
 	connectionData.provider = *provider
 	connectionData.nymClient = *nymClient
+	connectionData.instance = *instance
 	connectionData.ws = *newConnection()
 
 	if *urlId == "" {
@@ -169,13 +172,19 @@ func newPaste(text string, selfAddress string, public bool, ipfs bool, burn bool
 
 	receivedMessage := sendTextWithReply(&paste)
 	messageByte := []byte(receivedMessage.Message)[9:]
+
 	var dataUrl urlId
 	err := json.Unmarshal(messageByte, &dataUrl)
 	if err != nil {
 		panic(err)
 	}
 	if !*silent {
+
 		fmt.Printf("URL ID is %s", dataUrl.UrlId)
+		fmt.Printf("\nLink: https://%s/#/%s", connectionData.instance, dataUrl.UrlId)
+		if dataUrl.Ipfs {
+			fmt.Printf("\nipfs://%s", dataUrl.Hash)
+		}
 	} else {
 		fmt.Printf("%s", dataUrl.UrlId)
 	}
@@ -225,7 +234,6 @@ func sendTextWithReply(paste interface{}) messageReceived {
 
 	// append 9 0x00 bytes to set kind of message
 	modifiedPasteJson := append(make([]byte, 9), pasteJson...)
-	//fmt.Println(modifiedPasteJson)
 
 	sendRequest, err := json.Marshal(map[string]interface{}{
 		"type":      "send",
