@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/gorilla/websocket"
@@ -167,10 +168,12 @@ func getPaste(urlId string, selfAddress string) {
 	}
 
 	//quick and dirty decode, have to change
-	decodedText := strings.Replace(textData.Text, "&#x27;", "\"", -1)
+	decodedText, err := url.QueryUnescape(textData.Text)
 	if err != nil {
 		panic(err)
 	}
+	decodedText = strings.Replace(decodedText, "&quot;", "\"", -1)
+
 	content := []byte(decodedText)
 	var clearObjectUser clearObjectUser
 	err = json.Unmarshal(content, &clearObjectUser)
