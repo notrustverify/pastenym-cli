@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -102,7 +103,10 @@ func main() {
 
 	flag.Parse()
 
-	if *text == "" && *urlId == "" {
+	stat, _ := os.Stdin.Stat()
+	if (stat.Mode() & os.ModeCharDevice) == 0 {
+		*text = getFromPipe()
+	} else if *text == "" && *urlId == "" {
 		fmt.Println("-text or -id is mandatory")
 		flag.Usage()
 		os.Exit(1)
@@ -120,6 +124,21 @@ func main() {
 	}
 
 	defer connectionData.ws.Close()
+}
+
+func getFromPipe() string {
+	var buf []byte
+	scanner := bufio.NewScanner(os.Stdin)
+
+	for scanner.Scan() {
+		buf = append(buf, scanner.Bytes()...)
+	}
+
+	if err := scanner.Err(); err != nil {
+		panic(err)
+	}
+
+	return fmt.Sprintf("%s", buf)
 }
 
 func newConnection() *websocket.Conn {
