@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"html"
+	"os"
 
 	"github.com/gorilla/websocket"
 )
@@ -77,6 +78,7 @@ const NYM_HEADER_BINARY = '\x00' * 8    // not used now, to investigate later
 
 var connectionData connection
 var debug *bool
+var silent *bool
 
 func main() {
 
@@ -88,8 +90,7 @@ func main() {
 
 	urlId := flag.String("id", "", "Specify paste url id to retrieve. Default is empty")
 
-	//provider := flag.String("pastenym-provider", "6y7sSj3dKp5AESnet1RQXEHmKkEx8Bv3RgwEJinGXv6J.FZfu6hNPi1hgQfu7crbXXUNLtr3qbKBWokjqSpBEeBMV@EBT8jTD8o4tKng2NXrrcrzVhJiBnKpT1bJy5CMeArt2w", "Specify the path for a file to share. Default is empty")
-	provider := flag.String("provider", "4ByZ7f97dW3TDF1hkuPRDpsxZXKcpkLLEGQFfvtbPH58.8zZvkWzV2C8Dybk83CcfhhWTkqYchFLYSbX77UeMyU3b@EBT8jTD8o4tKng2NXrrcrzVhJiBnKpT1bJy5CMeArt2w", "Specify the path for a file to share. Default is empty")
+	provider := flag.String("provider", "6y7sSj3dKp5AESnet1RQXEHmKkEx8Bv3RgwEJinGXv6J.FZfu6hNPi1hgQfu7crbXXUNLtr3qbKBWokjqSpBEeBMV@EBT8jTD8o4tKng2NXrrcrzVhJiBnKpT1bJy5CMeArt2w", "Specify the path for a file to share. Default is empty")
 
 	nymClient := flag.String("nymclient", "127.0.0.1:1977", "Nym client to connect. Default 127.0.0.1:1977")
 
@@ -97,7 +98,15 @@ func main() {
 	ipfs := flag.Bool("ipfs", false, "Specify if the text to share is stored on IPFS. Default is false")
 	burn := flag.Bool("burn", false, "Specify if the text have to be deleted when read. Default is false")
 	debug = flag.Bool("debug", false, "Specify if the text have to be deleted when read. Default is false")
+	silent = flag.Bool("silent", false, "Remove every output, just print data. Default is false")
+
 	flag.Parse()
+
+	if *text == "" && *urlId == "" {
+		fmt.Println("-text or -id is mandatory")
+		flag.Usage()
+		os.Exit(1)
+	}
 
 	connectionData.provider = *provider
 	connectionData.nymClient = *nymClient
@@ -146,7 +155,11 @@ func newPaste(text string, selfAddress string, public bool, ipfs bool, burn bool
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("URL ID is %s", dataUrl.UrlId)
+	if !*silent {
+		fmt.Printf("URL ID is %s", dataUrl.UrlId)
+	} else {
+		fmt.Printf("%s", dataUrl.UrlId)
+	}
 }
 
 func getPaste(urlId string, selfAddress string) {
@@ -174,7 +187,12 @@ func getPaste(urlId string, selfAddress string) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("%s", clearObjectUser.Text)
+
+	if !*silent {
+		fmt.Printf("Paste text: %s", clearObjectUser.Text)
+	} else {
+		fmt.Printf("%s", clearObjectUser.Text)
+	}
 
 }
 
@@ -207,7 +225,10 @@ func sendTextWithReply(paste interface{}) messageReceived {
 		panic(err)
 	}
 
-	fmt.Printf("waiting to receive a message from the mix network...\n")
+	if !*silent {
+
+		fmt.Printf("waiting to receive a message from the mix network...\n")
+	}
 	_, receivedMessage, err := connectionData.ws.ReadMessage()
 	if err != nil {
 		panic(err)
