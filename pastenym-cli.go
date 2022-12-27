@@ -213,10 +213,11 @@ func getPaste(urlId string, selfAddress string) {
 	var clearObjectUser clearObjectUser
 	err = json.Unmarshal(content, &clearObjectUser)
 	if err != nil {
-		panic(err)
+		fmt.Println("File are not supported in pastenym CLI")
 	}
 
 	if !*silent {
+
 		fmt.Printf("Paste text: %s", clearObjectUser.Text)
 	} else {
 		fmt.Printf("%s", clearObjectUser.Text)
