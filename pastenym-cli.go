@@ -2,10 +2,16 @@ package main
 
 import (
 	"bufio"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"html"
+	"io"
 	"os"
 	"runtime"
 
@@ -47,7 +53,13 @@ type userDataAdd struct {
 	Private   bool            `json:"private"`
 	Burn      bool            `json:"burn"`
 	Ipfs      bool            `json:"ipfs"`
-	EncParams string          `json:"encParams"`
+	EncParams encParams       `json:"encParams"`
+}
+
+type encParams struct {
+	Salt  string `json:"salt"`
+	Adata string `json:"adata"`
+	Iv    string `json:"iv"`
 }
 
 type idNewPaste struct {
@@ -100,6 +112,7 @@ var White = "\033[97m"
 func main() {
 
 	initColor()
+
 	// flags declaration using flag package
 	text := flag.String("text", "", "Specify the text to share. Mandatory")
 
@@ -136,7 +149,13 @@ func main() {
 
 	if *urlId == "" {
 		selfAddress := getSelfAddress()
-		newPaste(*text, selfAddress, *public, *ipfs, *burn)
+		if *public {
+			newPaste(*text, encParams{}, selfAddress, *public, *ipfs, *burn)
+		} else {
+			key, text, encParams := encrypt(text)
+			newPaste(text, encParams, selfAddress, *public, *ipfs, *burn)
+			fmt.Printf("%sKey %s%s\n", Green, key, Reset)
+		}
 	} else {
 		getPaste(*urlId, getSelfAddress())
 	}
@@ -171,20 +190,38 @@ func newConnection() *websocket.Conn {
 	return conn
 }
 
-func newPaste(text string, selfAddress string, public bool, ipfs bool, burn bool) {
-
-	paste := pasteAdd{
-		Event:  newText,
-		Sender: selfAddress,
-		Data: userDataAdd{
-			Text: clearObjectUser{
-				Text: text,
-				File: "",
+func newPaste(text string, encryptionParams encParams, selfAddress string, public bool, ipfs bool, burn bool) {
+	emptyEnc := encParams{}
+	var paste pasteAdd
+	if encryptionParams == emptyEnc {
+		paste = pasteAdd{
+			Event:  newText,
+			Sender: selfAddress,
+			Data: userDataAdd{
+				Text: clearObjectUser{
+					Text: text,
+					File: "",
+				},
+				Private: public,
+				Burn:    burn,
+				Ipfs:    ipfs,
 			},
-			Private: !public,
-			Burn:    burn,
-			Ipfs:    ipfs,
-		},
+		}
+	} else {
+		paste = pasteAdd{
+			Event:  newText,
+			Sender: selfAddress,
+			Data: userDataAdd{
+				Text: clearObjectUser{
+					Text: text,
+					File: "",
+				},
+				Private:   !public,
+				Burn:      burn,
+				Ipfs:      ipfs,
+				EncParams: encryptionParams,
+			},
+		}
 	}
 
 	receivedMessage := sendTextWithReply(&paste)
@@ -311,6 +348,87 @@ func getSelfAddress() string {
 	}
 
 	return responseJSON["address"].(string)
+}
+
+func encrypt(stringToEncrypt *string) (string, string, encParams) {
+	key, _ := hex.DecodeString(genKey())
+	plaintext := []byte(*stringToEncrypt)
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	aesGCM, err := cipher.NewGCMWithNonceSize(block, 16)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	nonce := make([]byte, aesGCM.NonceSize())
+	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
+		panic(err.Error())
+	}
+	tagSize := 16
+
+	ciphertextBytes := aesGCM.Seal(nonce, nonce, plaintext, nil)
+
+	cipherTextString := base64.StdEncoding.EncodeToString(ciphertextBytes[aesGCM.NonceSize() : len(ciphertextBytes)-tagSize])
+	keyEncoded := base64.StdEncoding.EncodeToString(key)
+
+	encParams := encParams{
+		Iv:    base64.StdEncoding.EncodeToString(nonce),
+		Adata: base64.StdEncoding.EncodeToString(ciphertextBytes[len(ciphertextBytes)-tagSize:]),
+	}
+
+	return keyEncoded, cipherTextString, encParams
+}
+
+func decrypt(keyString string, encryptedString string, encParams encParams) string {
+
+	key, err := base64.StdEncoding.DecodeString(keyString)
+	encryptedText, _ := base64.StdEncoding.DecodeString(encryptedString)
+
+	if err != nil {
+		panic(err.Error())
+	}
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	aesGCM, err := cipher.NewGCM(block)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	adataDecode, err := base64.StdEncoding.DecodeString(encParams.Adata)
+	ivDecode, _ := base64.StdEncoding.DecodeString(encParams.Iv)
+	if err != nil {
+		panic(err.Error())
+	}
+	encryptedTextAdata := append(encryptedText, adataDecode...)
+	plaintext, err := aesGCM.Open(nil, ivDecode, encryptedTextAdata, nil)
+
+	if err != nil {
+		panic(err.Error())
+	}
+
+	return string(plaintext)
+
+}
+
+func genKey() string {
+	// from https://www.melvinvivas.com/how-to-encrypt-and-decrypt-data-using-aes
+
+	bytes := make([]byte, 32) //generate a random 32 byte key for AES-256
+
+	if _, err := rand.Read(bytes); err != nil {
+		panic(err.Error())
+	}
+
+	return hex.EncodeToString(bytes) //encode key in bytes to string for saving
+
 }
 
 func initColor() {
