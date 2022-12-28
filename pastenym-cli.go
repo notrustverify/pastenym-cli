@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"html"
 	"os"
+	"runtime"
 
 	"github.com/gorilla/websocket"
 )
 
+// handle connection parameters
 type connection struct {
 	nymClient string
 	provider  string
@@ -18,10 +20,13 @@ type connection struct {
 	instance  string
 }
 
+// store payload data user
 type clearObjectUser struct {
 	Text string `json:"text"`
 	File string `json:"file"`
 }
+
+// event to send when query or add text
 type event string
 
 const (
@@ -29,7 +34,15 @@ const (
 	getText event = "getText"
 )
 
-type userData struct {
+// to add a paste
+type pasteAdd struct {
+	Event  event       `json:"event"`
+	Sender string      `json:"sender"`
+	Data   userDataAdd `json:"data"`
+}
+
+// informations to set for adding a paste
+type userDataAdd struct {
 	Text      clearObjectUser `json:"text"`
 	Private   bool            `json:"private"`
 	Burn      bool            `json:"burn"`
@@ -37,35 +50,25 @@ type userData struct {
 	EncParams string          `json:"encParams"`
 }
 
-type paste struct {
-	Event  event    `json:"event"`
-	Sender string   `json:"sender"`
-	Data   userData `json:"data"`
+type idNewPaste struct {
+	Ipfs  bool   `json:"ipfs"`
+	Hash  string `json:"hash"`
+	UrlId string `json:"url_id"`
 }
 
+// to retrieve a paste
 type pasteRetrieve struct {
 	Event  event            `json:"event"`
 	Sender string           `json:"sender"`
 	Data   userDataRetrieve `json:"data"`
 }
 
+// informations needed to retrieve a paste
 type userDataRetrieve struct {
 	UrlId string `json:"urlId"`
 }
 
-type messageReceived struct {
-	Type      string `json:"type"`
-	Message   string `json:"message"`
-	SenderTag string `json:"senderTage"`
-}
-
-type urlId struct {
-	Ipfs  bool   `json:"ipfs"`
-	Hash  string `json:"hash"`
-	UrlId string `json:"url_id"`
-}
-
-type text struct {
+type textRetrieved struct {
 	Text      string `json:"text"`
 	NumView   int    `json:"num_view"`
 	CreatedOn string `json:"created_on"`
@@ -73,22 +76,34 @@ type text struct {
 	Ipfs      bool   `json:"is_ipfs"`
 }
 
-const NYM_KIND_TEXT = '\x00'
-const NYM_KIND_BINARY = '\x01'
-
-const NYM_HEADER_SIZE_TEXT = '\x00' * 8 //set to 0 if it's a text
-const NYM_HEADER_BINARY = '\x00' * 8    // not used now, to investigate later
+// informations received query or add a paste
+type messageReceived struct {
+	Type      string `json:"type"`
+	Message   string `json:"message"`
+	SenderTag string `json:"senderTage"`
+}
 
 var connectionData connection
 var debug *bool
 var silent *bool
 
+var Reset = "\033[0m"
+var Red = "\033[31m"
+var Green = "\033[32m"
+var Yellow = "\033[33m"
+var Blue = "\033[34m"
+var Purple = "\033[35m"
+var Cyan = "\033[36m"
+var Gray = "\033[37m"
+var White = "\033[97m"
+
 func main() {
 
+	initColor()
 	// flags declaration using flag package
 	text := flag.String("text", "", "Specify the text to share. Mandatory")
 
-	// soon to be implemented
+	// to be implemented
 	//file := flag.String("file", "", "Specify the path for a file to share. Default is empty")
 
 	urlId := flag.String("id", "", "Specify paste url id to retrieve. Default is empty")
@@ -109,7 +124,7 @@ func main() {
 	if (stat.Mode() & os.ModeCharDevice) == 0 {
 		*text = getFromPipe()
 	} else if *text == "" && *urlId == "" {
-		fmt.Println("-text or -id is mandatory")
+		fmt.Printf("%s-text or -id is mandatory%s", Red, Reset)
 		flag.Usage()
 		os.Exit(1)
 	}
@@ -148,6 +163,8 @@ func newConnection() *websocket.Conn {
 	uri := "ws://" + connectionData.nymClient
 	conn, _, err := websocket.DefaultDialer.Dial(uri, nil)
 	if err != nil {
+		defer conn.Close()
+		fmt.Printf("%sError with nym-client connection %s%s. Is it started ?\n", Red, uri, Reset)
 		panic(err)
 	}
 
@@ -156,10 +173,10 @@ func newConnection() *websocket.Conn {
 
 func newPaste(text string, selfAddress string, public bool, ipfs bool, burn bool) {
 
-	paste := paste{
+	paste := pasteAdd{
 		Event:  newText,
 		Sender: selfAddress,
-		Data: userData{
+		Data: userDataAdd{
 			Text: clearObjectUser{
 				Text: text,
 				File: "",
@@ -173,17 +190,17 @@ func newPaste(text string, selfAddress string, public bool, ipfs bool, burn bool
 	receivedMessage := sendTextWithReply(&paste)
 	messageByte := []byte(receivedMessage.Message)[9:]
 
-	var dataUrl urlId
+	var dataUrl idNewPaste
 	err := json.Unmarshal(messageByte, &dataUrl)
 	if err != nil {
 		panic(err)
 	}
 	if !*silent {
 
-		fmt.Printf("URL ID is %s", dataUrl.UrlId)
-		fmt.Printf("\nLink: https://%s/#/%s", connectionData.instance, dataUrl.UrlId)
+		fmt.Printf("%sURL ID is %s", Green, dataUrl.UrlId)
+		fmt.Printf("\nLink: https://%s/#/%s%s", connectionData.instance, dataUrl.UrlId, Reset)
 		if dataUrl.Ipfs {
-			fmt.Printf("\nipfs://%s", dataUrl.Hash)
+			fmt.Printf("\n%sipfs://%s%s", Green, dataUrl.Hash, Reset)
 		}
 	} else {
 		fmt.Printf("%s", dataUrl.UrlId)
@@ -201,7 +218,7 @@ func getPaste(urlId string, selfAddress string) {
 
 	receivedMessage := sendTextWithReply(&textToGet)
 	messageByte := []byte(receivedMessage.Message)[9:]
-	var textData text
+	var textData textRetrieved
 	err := json.Unmarshal(messageByte, &textData)
 	if err != nil {
 		panic(err)
@@ -213,22 +230,22 @@ func getPaste(urlId string, selfAddress string) {
 	var clearObjectUser clearObjectUser
 	err = json.Unmarshal(content, &clearObjectUser)
 	if err != nil {
-		fmt.Println("File are not supported in pastenym CLI")
+		fmt.Printf("%sFile are not supported in pastenym CLI%s\n", Red, Reset)
 	}
 
 	if !*silent {
 
-		fmt.Printf("Paste text: %s", clearObjectUser.Text)
+		fmt.Printf("%sPaste text\n%s%s", Green, clearObjectUser.Text, Reset)
 	} else {
 		fmt.Printf("%s", clearObjectUser.Text)
 	}
 
 }
 
-func sendTextWithReply(paste interface{}) messageReceived {
+func sendTextWithReply(data interface{}) messageReceived {
 	//copied from https://github.com/nymtech/nym/blob/develop/clients/native/examples/go-examples/websocket/text/textsend.go
 
-	pasteJson, err := json.Marshal(paste)
+	pasteJson, err := json.Marshal(data)
 	if err != nil {
 		panic(err)
 	}
@@ -294,4 +311,18 @@ func getSelfAddress() string {
 	}
 
 	return responseJSON["address"].(string)
+}
+
+func initColor() {
+	if runtime.GOOS == "windows" {
+		Reset = ""
+		Red = ""
+		Green = ""
+		Yellow = ""
+		Blue = ""
+		Purple = ""
+		Cyan = ""
+		Gray = ""
+		White = ""
+	}
 }
