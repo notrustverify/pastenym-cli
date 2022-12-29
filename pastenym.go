@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"html"
 	"io"
 	"math/big"
 	"os"
@@ -23,6 +22,14 @@ import (
 )
 
 const VERSION = "1.0.0"
+
+// event to send when query or add text
+type event string
+
+const (
+	newText event = "newText"
+	getText event = "getText"
+)
 
 // handle connection parameters
 type connection struct {
@@ -44,30 +51,6 @@ type File struct {
 	MimeType string `json:"mimeType"`
 }
 
-// event to send when query or add text
-type event string
-
-const (
-	newText event = "newText"
-	getText event = "getText"
-)
-
-// to add a paste
-type pasteAdd struct {
-	Event  event       `json:"event"`
-	Sender string      `json:"sender"`
-	Data   userDataAdd `json:"data"`
-}
-
-// informations to set for adding a paste
-type userDataAdd struct {
-	Text      string    `json:"text"`
-	Private   bool      `json:"private"`
-	Burn      bool      `json:"burn"`
-	Ipfs      bool      `json:"ipfs"`
-	EncParams encParams `json:"encParams"`
-}
-
 type encParams struct {
 	Salt   string `json:"salt"`
 	Adata  string `json:"adata"`
@@ -80,33 +63,6 @@ type encParams struct {
 	Iter   uint32 `json:"iter"`
 }
 
-type idNewPaste struct {
-	Ipfs  bool   `json:"ipfs"`
-	Hash  string `json:"hash"`
-	UrlId string `json:"url_id"`
-}
-
-// to retrieve a paste
-type pasteRetrieve struct {
-	Event  event            `json:"event"`
-	Sender string           `json:"sender"`
-	Data   userDataRetrieve `json:"data"`
-}
-
-// informations needed to retrieve a paste
-type userDataRetrieve struct {
-	UrlId string `json:"urlId"`
-}
-
-type textRetrieved struct {
-	Text      string    `json:"text"`
-	NumView   int       `json:"num_view"`
-	CreatedOn string    `json:"created_on"`
-	Burn      bool      `json:"is_burn"`
-	Ipfs      bool      `json:"is_ipfs"`
-	EncParams encParams `json:"encParams"`
-}
-
 // informations received query or add a paste
 type messageReceived struct {
 	Type      string `json:"type"`
@@ -117,6 +73,7 @@ type messageReceived struct {
 var connectionData connection
 var debug *bool
 var silent *bool
+var onlyURL *bool
 
 var Reset = "\033[0m"
 var Red = "\033[31m"
@@ -150,6 +107,7 @@ func main() {
 	burn := flag.Bool("burn", false, "Specify if the text have to be deleted when read. Default is false")
 	debug = flag.Bool("debug", false, "Specify if the text have to be deleted when read. Default is false")
 	silent = flag.Bool("silent", false, "Remove every output, just print data. Default is false")
+	onlyURL = flag.Bool("url", false, "Only print the URL. Default is false")
 
 	flag.Parse()
 
@@ -189,7 +147,7 @@ func main() {
 			dataUrl = newPaste(textEncrypted, encParams, selfAddress, *public, *ipfs, *burn)
 		}
 
-		if !*silent {
+		if !*silent && !*onlyURL {
 
 			fmt.Printf("%sID: %s", Green, dataUrl.UrlId)
 
@@ -203,8 +161,15 @@ func main() {
 			if dataUrl.Ipfs {
 				fmt.Printf("\n%sipfs://%s%s", Green, dataUrl.Hash, Reset)
 			}
-		} else {
-			fmt.Printf("%s", dataUrl.UrlId)
+		} else if *silent && !*onlyURL {
+			fmt.Printf("%s %s", dataUrl.UrlId, key)
+		} else if *onlyURL {
+			fmt.Printf("https://%s/#/%s", *instance, dataUrl.UrlId)
+
+			if key != "" {
+				fmt.Printf("&key=%s", key)
+
+			}
 		}
 	} else {
 
@@ -251,102 +216,6 @@ func newConnection() *websocket.Conn {
 	return conn
 }
 
-func newPaste(text string, encryptionParams encParams, selfAddress string, public bool, ipfs bool, burn bool) idNewPaste {
-
-	var paste pasteAdd
-	if encryptionParams.Salt == "" {
-		paste = pasteAdd{
-			Event:  newText,
-			Sender: selfAddress,
-			Data: userDataAdd{
-				Text:    text,
-				Private: !public,
-				Burn:    burn,
-				Ipfs:    ipfs,
-			},
-		}
-	} else {
-		paste = pasteAdd{
-			Event:  newText,
-			Sender: selfAddress,
-			Data: userDataAdd{
-				Text:      text,
-				Private:   public,
-				Burn:      burn,
-				Ipfs:      ipfs,
-				EncParams: encryptionParams,
-			},
-		}
-	}
-
-	receivedMessage := sendTextWithReply(&paste)
-	messageByte := []byte(receivedMessage.Message)[9:]
-
-	var dataUrl idNewPaste
-	err := json.Unmarshal(messageByte, &dataUrl)
-	if err != nil {
-		panic(err)
-	}
-
-	return dataUrl
-}
-
-func getPaste(urlId string, key string, selfAddress string) clearObjectUser {
-
-	var urlIdData userDataRetrieve
-	urlIdData.UrlId = urlId
-
-	var userKey string
-	userKey = key
-
-	// if url is paste extract urlId and key
-	if strings.Contains(urlId, "http") {
-		urlId, key := extractLink(urlId)
-		urlIdData.UrlId = urlId
-		userKey = key
-	}
-	textToGet := pasteRetrieve{
-		Event:  getText,
-		Sender: selfAddress,
-		Data:   urlIdData,
-	}
-
-	receivedMessage := sendTextWithReply(&textToGet)
-	messageByte := []byte(receivedMessage.Message)[9:]
-	var textData textRetrieved
-	err := json.Unmarshal(messageByte, &textData)
-	if err != nil {
-		panic(err)
-	}
-
-	decodedText := html.UnescapeString(textData.Text)
-	var content []byte
-
-	if decodedText == "" {
-		fmt.Printf("%sText not found%s\n", Red, Reset)
-		os.Exit(1)
-	}
-
-	if userKey != "" {
-		encParams := textData.EncParams
-
-		content = []byte(decrypt(userKey, decodedText, encParams))
-	} else {
-		content = []byte(decodedText)
-	}
-	var clearObjectUser clearObjectUser
-	err = json.Unmarshal(content, &clearObjectUser)
-	if err != nil {
-		panic(err.Error())
-	}
-	if clearObjectUser.File.Filename != "" {
-		fmt.Printf("%sFile are not supported in pastenym CLI%s\n", Red, Reset)
-	}
-
-	return clearObjectUser
-
-}
-
 func sendTextWithReply(data interface{}) messageReceived {
 	//copied from https://github.com/nymtech/nym/blob/develop/clients/native/examples/go-examples/websocket/text/textsend.go
 
@@ -375,8 +244,7 @@ func sendTextWithReply(data interface{}) messageReceived {
 		panic(err)
 	}
 
-	if !*silent {
-
+	if !*silent && !*onlyURL {
 		fmt.Printf("waiting to receive a message from the mix network\n")
 	}
 	_, receivedMessage, err := connectionData.ws.ReadMessage()
