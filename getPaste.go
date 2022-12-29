@@ -68,7 +68,7 @@ func getPaste(urlId string, key string, selfAddress string) clearObjectUser {
 	if userKey != "" {
 		encParams := textData.EncParams
 
-		content = []byte(decrypt(userKey, decodedText, encParams))
+		content = []byte(decrypt(userKey, &decodedText, encParams))
 	} else {
 		content = []byte(decodedText)
 	}
