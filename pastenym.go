@@ -172,7 +172,7 @@ func newConnection() *websocket.Conn {
 	conn, _, err := websocket.DefaultDialer.Dial(uri, nil)
 	if err != nil {
 		defer conn.Close()
-		fmt.Printf("%sError: No connection to nym-client %s%s. Is it started ?\n", Red, uri, Reset)
+		fmt.Printf("%sError: No connection to nym-client %s%s\n\nIs it started ?\nHow to run one https://nymtech.net/docs/stable/integrations/websocket-client\n\n", Red, uri, Reset)
 		if *debug {
 			panic(err)
 		}
