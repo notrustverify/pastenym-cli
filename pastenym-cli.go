@@ -155,7 +155,7 @@ func main() {
 	if (stat.Mode() & os.ModeCharDevice) == 0 {
 		*text = getFromPipe()
 	} else if *text == "" && *urlId == "" {
-		fmt.Printf("%s-text or -id is mandatory%s", Red, Reset)
+		fmt.Printf("%s-text or -id is mandatory%s\n", Red, Reset)
 		flag.Usage()
 		os.Exit(1)
 	}
