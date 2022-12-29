@@ -15,6 +15,7 @@ import (
 	"math/big"
 	"os"
 	"runtime"
+	"strings"
 
 	"golang.org/x/crypto/pbkdf2"
 
@@ -32,7 +33,13 @@ type connection struct {
 // store payload data user
 type clearObjectUser struct {
 	Text string `json:"text"`
-	File string `json:"file"`
+	File File   `json:"file"`
+}
+
+type File struct {
+	Data     []byte `json:"data"`
+	Filename string `json:"filename"`
+	MimeType string `json:"mimeType"`
 }
 
 // event to send when query or add text
@@ -162,7 +169,7 @@ func main() {
 		selfAddress := getSelfAddress()
 		plaintext, err := json.Marshal(clearObjectUser{
 			Text: *text,
-			File: "",
+			File: File{},
 		})
 		if err != nil {
 			panic(err.Error())
@@ -178,12 +185,11 @@ func main() {
 			var textEncrypted string
 			key, textEncrypted, encParams = encrypt(plaintext)
 			dataUrl = newPaste(textEncrypted, encParams, selfAddress, *public, *ipfs, *burn)
-
 		}
 
 		if !*silent {
 
-			fmt.Printf("%sURL ID is %s", Green, dataUrl.UrlId)
+			fmt.Printf("%sID: %s", Green, dataUrl.UrlId)
 
 			if !*public {
 				fmt.Printf("%s\nKey: %s\n", Green, key)
@@ -203,7 +209,7 @@ func main() {
 		data := getPaste(*urlId, *key, getSelfAddress())
 
 		if !*silent {
-			fmt.Printf("%sPaste text\n%s%s", Green, data.Text, Reset)
+			fmt.Printf("\nPaste content\n%s%s%s", Green, data.Text, Reset)
 		} else {
 			fmt.Printf("%s", data.Text)
 		}
@@ -280,12 +286,23 @@ func newPaste(text string, encryptionParams encParams, selfAddress string, publi
 }
 
 func getPaste(urlId string, key string, selfAddress string) clearObjectUser {
+
+	var urlIdData userDataRetrieve
+	urlIdData.UrlId = urlId
+
+	var userKey string
+	userKey = key
+
+	// if url is paste extract urlId and key
+	if strings.Contains(urlId, "http") {
+		urlId, key := extractLink(urlId)
+		urlIdData.UrlId = urlId
+		userKey = key
+	}
 	textToGet := pasteRetrieve{
 		Event:  getText,
 		Sender: selfAddress,
-		Data: userDataRetrieve{
-			UrlId: urlId,
-		},
+		Data:   urlIdData,
 	}
 
 	receivedMessage := sendTextWithReply(&textToGet)
@@ -298,10 +315,16 @@ func getPaste(urlId string, key string, selfAddress string) clearObjectUser {
 
 	decodedText := html.UnescapeString(textData.Text)
 	var content []byte
-	if key != "" {
+
+	if decodedText == "" {
+		fmt.Printf("%sText not found%s\n", Red, Reset)
+		os.Exit(1)
+	}
+
+	if userKey != "" {
 		encParams := textData.EncParams
 
-		content = []byte(decrypt(key, decodedText, encParams))
+		content = []byte(decrypt(userKey, decodedText, encParams))
 	} else {
 		content = []byte(decodedText)
 	}
@@ -310,7 +333,7 @@ func getPaste(urlId string, key string, selfAddress string) clearObjectUser {
 	if err != nil {
 		panic(err.Error())
 	}
-	if clearObjectUser.File != "" {
+	if clearObjectUser.File.Filename != "" {
 		fmt.Printf("%sFile are not supported in pastenym CLI%s\n", Red, Reset)
 	}
 
@@ -339,7 +362,7 @@ func sendTextWithReply(data interface{}) messageReceived {
 	}
 
 	if *debug {
-		fmt.Printf("sending '%s' over the mix network...\n", pasteJson)
+		fmt.Printf("sending '%s' over the mix network\n", pasteJson)
 	}
 
 	if err = connectionData.ws.WriteMessage(websocket.TextMessage, []byte(sendRequest)); err != nil {
@@ -348,7 +371,7 @@ func sendTextWithReply(data interface{}) messageReceived {
 
 	if !*silent {
 
-		fmt.Printf("waiting to receive a message from the mix network...\n")
+		fmt.Printf("waiting to receive a message from the mix network\n")
 	}
 	_, receivedMessage, err := connectionData.ws.ReadMessage()
 	if err != nil {
@@ -404,11 +427,9 @@ func encrypt(plaintext []byte) (string, string, encParams) {
 	}
 
 	nonce := make([]byte, aesGCM.NonceSize())
-	fmt.Println(aesGCM.NonceSize())
 	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
 		panic(err.Error())
 	}
-	//tagSize := 16
 
 	ciphertextBytes := aesGCM.Seal(nonce, nonce, plaintext, nil)
 
@@ -435,7 +456,6 @@ func decrypt(passphrase string, encryptedString string, encParams encParams) str
 	decodeSalt, _ := base64.StdEncoding.DecodeString(encParams.Salt)
 	key, _ := deriveKey(passphrase, []byte(decodeSalt))
 	encryptedText, err := base64.StdEncoding.DecodeString(encryptedString)
-
 	if err != nil {
 		panic(err.Error())
 	}
@@ -448,7 +468,10 @@ func decrypt(passphrase string, encryptedString string, encParams encParams) str
 	aesGCM, err := cipher.NewGCM(block)
 
 	if err != nil {
-		panic(err.Error())
+		fmt.Printf("\n%sUnable to decrypt%s\n", Red, Reset)
+		if *debug {
+			panic(err.Error())
+		}
 	}
 
 	//adataDecode, err := base64.StdEncoding.DecodeString(encParams.Adata)
@@ -458,12 +481,13 @@ func decrypt(passphrase string, encryptedString string, encParams encParams) str
 	}
 
 	plaintext, err := aesGCM.Open(nil, ivDecode, encryptedText, nil)
-
 	if err != nil {
-		panic(err.Error())
+		fmt.Printf("\n%sUnable to decrypt%s\n", Red, Reset)
+		if *debug {
+			panic(err.Error())
+		}
 	}
 
-	fmt.Println(string(plaintext))
 	return string(plaintext)
 
 }
@@ -494,6 +518,21 @@ func deriveKey(passphrase string, salt []byte) ([]byte, []byte) {
 		rand.Read(salt)
 	}
 	return pbkdf2.Key([]byte(passphrase), salt, 10000, 32, sha256.New), salt
+}
+
+func extractLink(link string) (string, string) {
+	var urlId string
+
+	urlId = link[strings.LastIndex(link, "/")+1:]
+
+	var key string
+	if strings.Contains(urlId, "&") {
+		//extract key
+		key = strings.Replace(urlId[strings.LastIndex(urlId, "&")+1:], "key=", "", -1)
+		urlId = urlId[:strings.Index(urlId, "&")]
+	}
+
+	return urlId, key
 }
 
 func initColor() {
