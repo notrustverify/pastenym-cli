@@ -240,8 +240,12 @@ func newConnection() *websocket.Conn {
 	conn, _, err := websocket.DefaultDialer.Dial(uri, nil)
 	if err != nil {
 		defer conn.Close()
-		fmt.Printf("%sError with nym-client connection %s%s. Is it started ?\n", Red, uri, Reset)
-		panic(err)
+		fmt.Printf("%sError: No connection to nym-client %s%s. Is it started ?\n", Red, uri, Reset)
+		if *debug {
+			panic(err)
+		}
+		os.Exit(1)
+
 	}
 
 	return conn
