@@ -1,4 +1,4 @@
-module pastenym-cli/pastenym-cli
+module pastenym-cli/pastenym
 
 require github.com/gorilla/websocket v1.4.2
 
