@@ -5,15 +5,18 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"html"
 	"io"
+	"math/big"
 	"os"
 	"runtime"
+
+	"golang.org/x/crypto/pbkdf2"
 
 	"github.com/gorilla/websocket"
 )
@@ -49,17 +52,23 @@ type pasteAdd struct {
 
 // informations to set for adding a paste
 type userDataAdd struct {
-	Text      clearObjectUser `json:"text"`
-	Private   bool            `json:"private"`
-	Burn      bool            `json:"burn"`
-	Ipfs      bool            `json:"ipfs"`
-	EncParams encParams       `json:"encParams"`
+	Text      string    `json:"text"`
+	Private   bool      `json:"private"`
+	Burn      bool      `json:"burn"`
+	Ipfs      bool      `json:"ipfs"`
+	EncParams encParams `json:"encParams"`
 }
 
 type encParams struct {
-	Salt  string `json:"salt"`
-	Adata string `json:"adata"`
-	Iv    string `json:"iv"`
+	Salt   string `json:"salt"`
+	Adata  string `json:"adata"`
+	Iv     string `json:"iv"`
+	Ks     uint32 `json:"ks"`
+	V      uint8  `json:"v"`
+	Ts     uint32 `json:"ts"`
+	Mode   string `json:"mode"`
+	Cipher string `json:"cipher"`
+	Iter   uint32 `json:"iter"`
 }
 
 type idNewPaste struct {
@@ -81,11 +90,12 @@ type userDataRetrieve struct {
 }
 
 type textRetrieved struct {
-	Text      string `json:"text"`
-	NumView   int    `json:"num_view"`
-	CreatedOn string `json:"created_on"`
-	Burn      bool   `json:"is_burn"`
-	Ipfs      bool   `json:"is_ipfs"`
+	Text      string    `json:"text"`
+	NumView   int       `json:"num_view"`
+	CreatedOn string    `json:"created_on"`
+	Burn      bool      `json:"is_burn"`
+	Ipfs      bool      `json:"is_ipfs"`
+	EncParams encParams `json:"encParams"`
 }
 
 // informations received query or add a paste
@@ -120,12 +130,13 @@ func main() {
 	//file := flag.String("file", "", "Specify the path for a file to share. Default is empty")
 
 	urlId := flag.String("id", "", "Specify paste url id to retrieve. Default is empty")
+	key := flag.String("key", "", "Key for getting the plaintext")
 
 	provider := flag.String("provider", "6y7sSj3dKp5AESnet1RQXEHmKkEx8Bv3RgwEJinGXv6J.FZfu6hNPi1hgQfu7crbXXUNLtr3qbKBWokjqSpBEeBMV@EBT8jTD8o4tKng2NXrrcrzVhJiBnKpT1bJy5CMeArt2w", "Specify the path for a file to share. Default is empty")
 	nymClient := flag.String("nymclient", "127.0.0.1:1977", "Nym client to connect. Default 127.0.0.1:1977")
 	instance := flag.String("instance", "pastenym.ch", "Instance where to get the paste from GUI")
 
-	public := flag.Bool("public", true, "Set the paste to public, i.e without encryption. Default is private")
+	public := flag.Bool("public", false, "Set the paste to public, i.e without encryption. Default is private")
 	ipfs := flag.Bool("ipfs", false, "Specify if the text to share is stored on IPFS. Default is false")
 	burn := flag.Bool("burn", false, "Specify if the text have to be deleted when read. Default is false")
 	debug = flag.Bool("debug", false, "Specify if the text have to be deleted when read. Default is false")
@@ -149,15 +160,53 @@ func main() {
 
 	if *urlId == "" {
 		selfAddress := getSelfAddress()
+		plaintext, err := json.Marshal(clearObjectUser{
+			Text: *text,
+			File: "",
+		})
+		if err != nil {
+			panic(err.Error())
+		}
+
+		var dataUrl idNewPaste
+		var key string
+
 		if *public {
-			newPaste(*text, encParams{}, selfAddress, *public, *ipfs, *burn)
+			dataUrl = newPaste(string(plaintext), encParams{}, selfAddress, *public, *ipfs, *burn)
 		} else {
-			key, text, encParams := encrypt(text)
-			newPaste(text, encParams, selfAddress, *public, *ipfs, *burn)
-			fmt.Printf("%sKey %s%s\n", Green, key, Reset)
+			var encParams encParams
+			var textEncrypted string
+			key, textEncrypted, encParams = encrypt(plaintext)
+			dataUrl = newPaste(textEncrypted, encParams, selfAddress, *public, *ipfs, *burn)
+
+		}
+
+		if !*silent {
+
+			fmt.Printf("%sURL ID is %s", Green, dataUrl.UrlId)
+
+			if !*public {
+				fmt.Printf("%s\nKey: %s\n", Green, key)
+				fmt.Printf("\nLink: https://%s/#/%s&key=%s%s", connectionData.instance, dataUrl.UrlId, key, Reset)
+			} else {
+				fmt.Printf("\nLink: https://%s/#/%s%s", connectionData.instance, dataUrl.UrlId, Reset)
+			}
+
+			if dataUrl.Ipfs {
+				fmt.Printf("\n%sipfs://%s%s", Green, dataUrl.Hash, Reset)
+			}
+		} else {
+			fmt.Printf("%s", dataUrl.UrlId)
 		}
 	} else {
-		getPaste(*urlId, getSelfAddress())
+
+		data := getPaste(*urlId, *key, getSelfAddress())
+
+		if !*silent {
+			fmt.Printf("%sPaste text\n%s%s", Green, data.Text, Reset)
+		} else {
+			fmt.Printf("%s", data.Text)
+		}
 	}
 
 	defer connectionData.ws.Close()
@@ -190,19 +239,16 @@ func newConnection() *websocket.Conn {
 	return conn
 }
 
-func newPaste(text string, encryptionParams encParams, selfAddress string, public bool, ipfs bool, burn bool) {
-	emptyEnc := encParams{}
+func newPaste(text string, encryptionParams encParams, selfAddress string, public bool, ipfs bool, burn bool) idNewPaste {
+
 	var paste pasteAdd
-	if encryptionParams == emptyEnc {
+	if encryptionParams.Salt == "" {
 		paste = pasteAdd{
 			Event:  newText,
 			Sender: selfAddress,
 			Data: userDataAdd{
-				Text: clearObjectUser{
-					Text: text,
-					File: "",
-				},
-				Private: public,
+				Text:    text,
+				Private: !public,
 				Burn:    burn,
 				Ipfs:    ipfs,
 			},
@@ -212,11 +258,8 @@ func newPaste(text string, encryptionParams encParams, selfAddress string, publi
 			Event:  newText,
 			Sender: selfAddress,
 			Data: userDataAdd{
-				Text: clearObjectUser{
-					Text: text,
-					File: "",
-				},
-				Private:   !public,
+				Text:      text,
+				Private:   public,
 				Burn:      burn,
 				Ipfs:      ipfs,
 				EncParams: encryptionParams,
@@ -232,19 +275,11 @@ func newPaste(text string, encryptionParams encParams, selfAddress string, publi
 	if err != nil {
 		panic(err)
 	}
-	if !*silent {
 
-		fmt.Printf("%sURL ID is %s", Green, dataUrl.UrlId)
-		fmt.Printf("\nLink: https://%s/#/%s%s", connectionData.instance, dataUrl.UrlId, Reset)
-		if dataUrl.Ipfs {
-			fmt.Printf("\n%sipfs://%s%s", Green, dataUrl.Hash, Reset)
-		}
-	} else {
-		fmt.Printf("%s", dataUrl.UrlId)
-	}
+	return dataUrl
 }
 
-func getPaste(urlId string, selfAddress string) {
+func getPaste(urlId string, key string, selfAddress string) clearObjectUser {
 	textToGet := pasteRetrieve{
 		Event:  getText,
 		Sender: selfAddress,
@@ -262,20 +297,24 @@ func getPaste(urlId string, selfAddress string) {
 	}
 
 	decodedText := html.UnescapeString(textData.Text)
+	var content []byte
+	if key != "" {
+		encParams := textData.EncParams
 
-	content := []byte(decodedText)
+		content = []byte(decrypt(key, decodedText, encParams))
+	} else {
+		content = []byte(decodedText)
+	}
 	var clearObjectUser clearObjectUser
 	err = json.Unmarshal(content, &clearObjectUser)
 	if err != nil {
+		panic(err.Error())
+	}
+	if clearObjectUser.File != "" {
 		fmt.Printf("%sFile are not supported in pastenym CLI%s\n", Red, Reset)
 	}
 
-	if !*silent {
-
-		fmt.Printf("%sPaste text\n%s%s", Green, clearObjectUser.Text, Reset)
-	} else {
-		fmt.Printf("%s", clearObjectUser.Text)
-	}
+	return clearObjectUser
 
 }
 
@@ -350,43 +389,52 @@ func getSelfAddress() string {
 	return responseJSON["address"].(string)
 }
 
-func encrypt(stringToEncrypt *string) (string, string, encParams) {
-	key, _ := hex.DecodeString(genKey())
-	plaintext := []byte(*stringToEncrypt)
+func encrypt(plaintext []byte) (string, string, encParams) {
+	passphrase, key, salt := genKey(32)
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	aesGCM, err := cipher.NewGCMWithNonceSize(block, 16)
+	aesGCM, err := cipher.NewGCM(block)
+
 	if err != nil {
 		panic(err.Error())
 	}
 
 	nonce := make([]byte, aesGCM.NonceSize())
+	fmt.Println(aesGCM.NonceSize())
 	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
 		panic(err.Error())
 	}
-	tagSize := 16
+	//tagSize := 16
 
 	ciphertextBytes := aesGCM.Seal(nonce, nonce, plaintext, nil)
 
-	cipherTextString := base64.StdEncoding.EncodeToString(ciphertextBytes[aesGCM.NonceSize() : len(ciphertextBytes)-tagSize])
-	keyEncoded := base64.StdEncoding.EncodeToString(key)
+	cipherTextString := base64.StdEncoding.EncodeToString(ciphertextBytes[aesGCM.NonceSize():])
+	//keyEncoded := base64.StdEncoding.EncodeToString(key)
 
+	// parameters used by sjcl
 	encParams := encParams{
-		Iv:    base64.StdEncoding.EncodeToString(nonce),
-		Adata: base64.StdEncoding.EncodeToString(ciphertextBytes[len(ciphertextBytes)-tagSize:]),
+		Iv:     base64.StdEncoding.EncodeToString(nonce),
+		Salt:   base64.StdEncoding.EncodeToString(salt),
+		Ks:     256,
+		V:      1,
+		Mode:   "gcm",
+		Cipher: "aes",
+		Iter:   10000,
+		Ts:     128,
 	}
 
-	return keyEncoded, cipherTextString, encParams
+	return passphrase, cipherTextString, encParams
 }
 
-func decrypt(keyString string, encryptedString string, encParams encParams) string {
+func decrypt(passphrase string, encryptedString string, encParams encParams) string {
 
-	key, err := base64.StdEncoding.DecodeString(keyString)
-	encryptedText, _ := base64.StdEncoding.DecodeString(encryptedString)
+	decodeSalt, _ := base64.StdEncoding.DecodeString(encParams.Salt)
+	key, _ := deriveKey(passphrase, []byte(decodeSalt))
+	encryptedText, err := base64.StdEncoding.DecodeString(encryptedString)
 
 	if err != nil {
 		panic(err.Error())
@@ -398,37 +446,54 @@ func decrypt(keyString string, encryptedString string, encParams encParams) stri
 	}
 
 	aesGCM, err := cipher.NewGCM(block)
+
 	if err != nil {
 		panic(err.Error())
 	}
 
-	adataDecode, err := base64.StdEncoding.DecodeString(encParams.Adata)
+	//adataDecode, err := base64.StdEncoding.DecodeString(encParams.Adata)
 	ivDecode, _ := base64.StdEncoding.DecodeString(encParams.Iv)
 	if err != nil {
 		panic(err.Error())
 	}
-	encryptedTextAdata := append(encryptedText, adataDecode...)
-	plaintext, err := aesGCM.Open(nil, ivDecode, encryptedTextAdata, nil)
+
+	plaintext, err := aesGCM.Open(nil, ivDecode, encryptedText, nil)
 
 	if err != nil {
 		panic(err.Error())
 	}
 
+	fmt.Println(string(plaintext))
 	return string(plaintext)
 
 }
 
-func genKey() string {
-	// from https://www.melvinvivas.com/how-to-encrypt-and-decrypt-data-using-aes
+func genKey(size uint8) (string, []byte, []byte) {
+	const letters = "0123456789abcdefghijklmnopqrstuvwxyz"
+	passphrase := make([]byte, size)
 
-	bytes := make([]byte, 32) //generate a random 32 byte key for AES-256
-
-	if _, err := rand.Read(bytes); err != nil {
-		panic(err.Error())
+	var i uint8
+	for i = 0; i < size; i++ {
+		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(letters))))
+		if err != nil {
+			panic(err.Error())
+		}
+		passphrase[i] = letters[num.Int64()]
 	}
 
-	return hex.EncodeToString(bytes) //encode key in bytes to string for saving
+	key, salt := deriveKey(string(passphrase), nil)
+	return string(passphrase), key, salt //encode key in bytes to string for saving
 
+}
+
+func deriveKey(passphrase string, salt []byte) ([]byte, []byte) {
+	if salt == nil {
+		salt = make([]byte, 8)
+		// http://www.ietf.org/rfc/rfc2898.txt
+		// Salt.
+		rand.Read(salt)
+	}
+	return pbkdf2.Key([]byte(passphrase), salt, 10000, 32, sha256.New), salt
 }
 
 func initColor() {
