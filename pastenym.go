@@ -22,6 +22,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+const VERSION = "1.0.0"
+
 // handle connection parameters
 type connection struct {
 	nymClient string
@@ -155,7 +157,7 @@ func main() {
 	if (stat.Mode() & os.ModeCharDevice) == 0 {
 		*text = getFromPipe()
 	} else if *text == "" && *urlId == "" {
-		fmt.Printf("%s-text or -id is mandatory%s\n", Red, Reset)
+		fmt.Printf("\nVersion: %s\n%s-text or -id is mandatory%s\n", VERSION, Red, Reset)
 		flag.Usage()
 		os.Exit(1)
 	}
