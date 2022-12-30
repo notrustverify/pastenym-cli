@@ -53,9 +53,9 @@ func encrypt(plaintext *[]byte) (string, string, encParams) {
 }
 
 func decrypt(passphrase string, encryptedString *string, encParams encParams) string {
-
 	decodeSalt, _ := base64.StdEncoding.DecodeString(encParams.Salt)
 	key, _ := deriveKey(passphrase, []byte(decodeSalt))
+
 	encryptedText, err := base64.StdEncoding.DecodeString(*encryptedString)
 	if err != nil {
 		panic(err.Error())

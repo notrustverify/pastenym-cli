@@ -6,7 +6,7 @@ import (
 
 func formatAddPasteVerbose(public bool, urlId string, ipfsHash string, key string) {
 
-	fmt.Printf("%sID: %s", Green, urlId)
+	fmt.Printf("\n\n%sID: %s", Green, urlId)
 
 	if !public {
 		fmt.Printf("%s\nKey: %s\n", Green, key)
@@ -16,8 +16,10 @@ func formatAddPasteVerbose(public bool, urlId string, ipfsHash string, key strin
 	}
 
 	if ipfsHash != "" {
-		fmt.Printf("\n%sipfs://%s%s", Green, ipfsHash, Reset)
+		fmt.Printf("\nipfs://%s\n", ipfsHash)
 	}
+
+	fmt.Printf("\n")
 }
 
 func formatAddPasteSilent(urlId string, key string) {
@@ -34,7 +36,7 @@ func formatAddPasteOnlyUrl(urlId string, key string, instance string) {
 }
 
 func formatGetPasteContentVerbose(data *clearObjectUser) {
-	fmt.Printf("\nPaste content\n%s%s%s", Green, data.Text, Reset)
+	fmt.Printf("\n\n%sPaste content%s\n%s\n", Green, Reset, data.Text)
 }
 
 func formatGetPasteContentSilent(data *clearObjectUser) {

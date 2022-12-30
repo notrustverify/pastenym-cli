@@ -75,7 +75,12 @@ func getPaste(urlId string, key string, selfAddress string) clearObjectUser {
 	var clearObjectUser clearObjectUser
 	err = json.Unmarshal(content, &clearObjectUser)
 	if err != nil {
-		panic(err.Error())
+		fmt.Printf("\n%sError with text retrieved. --key is needed for decryption%s\n", Red, Reset)
+
+		if *debug {
+			panic(err.Error())
+		}
+		os.Exit(1)
 	}
 	if clearObjectUser.File.Filename != "" {
 		fmt.Printf("%sFile are not supported in pastenym CLI%s\n", Red, Reset)

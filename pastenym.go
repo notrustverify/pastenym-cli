@@ -172,7 +172,7 @@ func newConnection() *websocket.Conn {
 	conn, _, err := websocket.DefaultDialer.Dial(uri, nil)
 	if err != nil {
 		defer conn.Close()
-		fmt.Printf("%sError: No connection to nym-client %s%s\n\nIs it started ?\nHow to run one https://nymtech.net/docs/stable/integrations/websocket-client\n\n", Red, uri, Reset)
+		fmt.Printf("%s\nError: No connection to nym-client %s%s\n\nIs it started ?\nHow to run one https://nymtech.net/docs/stable/integrations/websocket-client\n\n", Red, uri, Reset)
 		if *debug {
 			panic(err)
 		}
@@ -212,7 +212,7 @@ func sendTextWithReply(data interface{}) messageReceived {
 	}
 
 	if !*silent && !*onlyURL {
-		fmt.Printf("waiting to receive a message from the mix network\n")
+		fmt.Printf("waiting to receive a message from the mix network")
 	}
 	_, receivedMessage, err := connectionData.ws.ReadMessage()
 	if err != nil {
