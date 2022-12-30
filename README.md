@@ -10,7 +10,8 @@ Grab the latest release: https://github.com/notrustverify/pastenym-cli/releases/
 
 or compile it yourself
 
-Install [Go](https://go.dev/doc/install)
+1. Install [Go](https://go.dev/doc/install)
+2. Get the repo and compile
 ```bash
 git clone https://github.com/notrustverify/pastenym-cli/
 cd pastenym-cli
