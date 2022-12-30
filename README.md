@@ -50,7 +50,7 @@ echo "my text" | ./pastenym
 
 
 ```
-Usage of ./pastenym:
+Usage of pastenym:
   --burn
     	Specify if the text have to be deleted when read. Default is false
   --debug
@@ -64,15 +64,16 @@ Usage of ./pastenym:
   --key string
     	Key for getting the plaintext
   --nymclient string
-    	Nym client to connect. Default 127.0.0.1:1977 (default "127.0.0.1:1977")
+    	Nym client to connect (default "127.0.0.1:1977")
   --provider string
-    	Specify the path for a file to share. Default is empty (default "6y7sSj3dKp5AESnet1RQXEHmKkEx8Bv3RgwEJinGXv6J.FZfu6hNPi1hgQfu7crbXXUNLtr3qbKBWokjqSpBEeBMV@EBT8jTD8o4tKng2NXrrcrzVhJiBnKpT1bJy5CMeArt2w")
+    	Specify the path for a file to share. Default is empty (default "6y7sSj3dKp5AESnet1RQXEHmKkEx8Bv3...")
   --public
     	Set the paste to public, i.e without encryption. Default is private
   --silent
     	Remove every output, just print data. Default is false
-  --url
-    	Only print the URL. Default is false
   --text string
     	Specify the text to share. Mandatory
+  --url
+    	Only print the URL. Default is false
+
 ```
