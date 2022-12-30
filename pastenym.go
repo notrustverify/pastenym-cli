@@ -149,7 +149,7 @@ func main() {
 		}
 	}
 
-	defer connectionData.ws.Close()
+	connectionData.ws.Close()
 }
 
 func getFromPipe() string {

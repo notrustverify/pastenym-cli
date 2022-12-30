@@ -62,6 +62,7 @@ func getPaste(urlId string, key string, selfAddress string) clearObjectUser {
 
 	if decodedText == "" {
 		fmt.Printf("%sText not found%s\n", Red, Reset)
+		connectionData.ws.Close()
 		os.Exit(1)
 	}
 
@@ -80,10 +81,11 @@ func getPaste(urlId string, key string, selfAddress string) clearObjectUser {
 		if *debug {
 			panic(err.Error())
 		}
+		connectionData.ws.Close()
 		os.Exit(1)
 	}
 	if clearObjectUser.File.Filename != "" {
-		fmt.Printf("%sFile are not supported in pastenym CLI%s\n", Red, Reset)
+		fmt.Printf("\n\n%sFile are not supported in pastenym CLI%s", Red, Reset)
 	}
 
 	return clearObjectUser

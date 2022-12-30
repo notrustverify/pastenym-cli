@@ -6,10 +6,15 @@
 
 ## Installation
 
+Grab the latest release: https://github.com/notrustverify/pastenym-cli/releases/latest
+
+or compile it yourself
+
+Install [Go](https://go.dev/doc/install)
 ```bash
 git clone https://github.com/notrustverify/pastenym-cli/
 cd pastenym-cli
-go build
+make
 ```
 
 
