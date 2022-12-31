@@ -59,6 +59,10 @@ type messageReceived struct {
 	SenderTag string `json:"senderTage"`
 }
 
+type ErrorMessage struct {
+	Message string
+}
+
 var connectionData connection
 var debug *bool
 var silent *bool
@@ -105,6 +109,10 @@ func main() {
 	connectionData.ws = *newConnection()
 
 	if *text != "" {
+		if (*public || *burn) && *ipfs {
+			fmt.Printf("\n%sIPFS paste cannot be public or burned%s\n", Red, Reset)
+			os.Exit(1)
+		}
 		// create a new paste
 
 		selfAddress := getSelfAddress()

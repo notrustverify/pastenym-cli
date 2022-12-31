@@ -1,6 +1,11 @@
 package main
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"strings"
+)
 
 type idNewPaste struct {
 	Ipfs  bool   `json:"ipfs"`
@@ -41,9 +46,16 @@ func newPaste(text string, encryptionParams encParams, selfAddress string, publi
 	receivedMessage := sendTextWithReply(&paste)
 	messageByte := []byte(receivedMessage.Message)[9:]
 
+	if strings.Contains(strings.ToLower(receivedMessage.Message), "error") {
+		errMsg := strings.ToLower(receivedMessage.Message)
+		fmt.Printf("\n\n%s%s%s\n", Red, strings.Replace(errMsg, "\"", "", -1), Reset)
+		os.Exit(1)
+	}
+
 	var dataUrl idNewPaste
 	err := json.Unmarshal(messageByte, &dataUrl)
 	if err != nil {
+
 		panic(err)
 	}
 
