@@ -35,11 +35,20 @@ func formatAddPasteOnlyUrl(urlId string, key string, instance string) {
 	}
 }
 
-func formatGetPasteContentVerbose(data *clearObjectUser) {
-	fmt.Printf("\n\n%sPaste content%s\n%s\n", Green, Reset, data.Text)
+func formatGetPasteContentVerbose(metadata *textRetrieved, userData *clearObjectUser) {
+
+	if metadata.NumView > 0 && !metadata.Burn {
+		fmt.Printf("\n\nCreated on: %s - Num views: %d - ipfs: %t", metadata.CreatedOn, metadata.NumView, metadata.Ipfs)
+	}
+
+	if metadata.Burn {
+		fmt.Printf("\n\n%sThe paste is now deleted%s", Yellow, Reset)
+	}
+
+	fmt.Printf("%s\nPaste content%s\n%s\n", Green, Reset, userData.Text)
 }
 
-func formatGetPasteContentSilent(data *clearObjectUser) {
-	fmt.Printf("%s", data.Text)
+func formatGetPasteContentSilent(userData *clearObjectUser) {
+	fmt.Printf("%s", userData.Text)
 
 }

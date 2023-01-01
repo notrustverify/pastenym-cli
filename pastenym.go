@@ -141,19 +141,19 @@ func main() {
 		if !*silent && !*onlyURL {
 			formatAddPasteVerbose(*public, dataUrl.UrlId, dataUrl.Hash, key)
 		} else if *silent && !*onlyURL {
-			formatAddPasteSilent(*urlId, key)
+			formatAddPasteSilent(dataUrl.UrlId, key)
 		} else if *onlyURL {
-			formatAddPasteOnlyUrl(*urlId, key, *instance)
+			formatAddPasteOnlyUrl(dataUrl.UrlId, key, *instance)
 		}
 
 	} else if *urlId != "" {
 
-		data := getPaste(*urlId, *key, getSelfAddress())
+		metadata, userData := getPaste(*urlId, *key, getSelfAddress())
 
 		if !*silent {
-			formatGetPasteContentVerbose(&data)
+			formatGetPasteContentVerbose(&metadata, &userData)
 		} else {
-			formatGetPasteContentSilent(&data)
+			formatGetPasteContentSilent(&userData)
 		}
 	}
 

@@ -29,7 +29,7 @@ type textRetrieved struct {
 	EncParams encParams `json:"encParams"`
 }
 
-func getPaste(urlId string, key string, selfAddress string) clearObjectUser {
+func getPaste(urlId string, key string, selfAddress string) (textRetrieved, clearObjectUser) {
 
 	var urlIdData userDataRetrieve
 	urlIdData.UrlId = urlId
@@ -56,12 +56,11 @@ func getPaste(urlId string, key string, selfAddress string) clearObjectUser {
 	if err != nil {
 		panic(err)
 	}
-
 	decodedText := html.UnescapeString(textData.Text)
 	var content []byte
 
 	if decodedText == "" {
-		fmt.Printf("%sText not found%s\n", Red, Reset)
+		fmt.Printf("%s\nText not found%s\n", Red, Reset)
 		connectionData.ws.Close()
 		os.Exit(1)
 	}
@@ -70,6 +69,7 @@ func getPaste(urlId string, key string, selfAddress string) clearObjectUser {
 		encParams := textData.EncParams
 
 		content = []byte(decrypt(userKey, &decodedText, encParams))
+
 	} else {
 		content = []byte(decodedText)
 	}
@@ -88,6 +88,6 @@ func getPaste(urlId string, key string, selfAddress string) clearObjectUser {
 		fmt.Printf("\n\n%sFile are not supported in pastenym CLI%s", Red, Reset)
 	}
 
-	return clearObjectUser
+	return textData, clearObjectUser
 
 }
