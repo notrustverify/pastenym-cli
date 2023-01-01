@@ -40,7 +40,7 @@ func formatGetPasteContentVerbose(metadata *textRetrieved, userData *clearObject
 	fmt.Printf("\n\nCreated on: %s", metadata.CreatedOn)
 
 	if metadata.NumView > 0 && !metadata.Burn {
-		fmt.Printf("Num views: %d", metadata.NumView)
+		fmt.Printf(" - Num views: %d - ", metadata.NumView)
 	} else {
 		fmt.Printf(" - ")
 	}
