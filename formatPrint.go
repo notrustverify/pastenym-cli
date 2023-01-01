@@ -37,12 +37,17 @@ func formatAddPasteOnlyUrl(urlId string, key string, instance string) {
 
 func formatGetPasteContentVerbose(metadata *textRetrieved, userData *clearObjectUser) {
 
+	fmt.Printf("\n\nCreated on: %s", metadata.CreatedOn)
+
 	if metadata.NumView > 0 && !metadata.Burn {
-		fmt.Printf("\n\nCreated on: %s - Num views: %d - ipfs: %t", metadata.CreatedOn, metadata.NumView, metadata.Ipfs)
+		fmt.Printf("Num views: %d", metadata.NumView)
+	} else {
+		fmt.Printf(" - ")
 	}
+	fmt.Printf("ipfs: %t", metadata.Ipfs)
 
 	if metadata.Burn {
-		fmt.Printf("\n\n%sThe paste is now deleted%s", Yellow, Reset)
+		fmt.Printf("\n%sThe paste is now deleted%s\n", Yellow, Reset)
 	}
 
 	fmt.Printf("%s\nPaste content%s\n%s\n", Green, Reset, userData.Text)
