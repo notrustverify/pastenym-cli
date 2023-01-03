@@ -2,7 +2,6 @@ package utils
 
 import (
 	"errors"
-	"fmt"
 	"math"
 	"os"
 	"strings"
@@ -44,7 +43,6 @@ func ReadFile(filePath string) (bool, File, string) {
 
 	if fStat, err := os.Stat(filePath); err == nil {
 
-		fmt.Println(fStat.Size())
 		if fStat.Size() >= int64(6*math.Pow10(6)) {
 			return false, File{Filename: filename}, "File too big for the mixnet"
 		}
