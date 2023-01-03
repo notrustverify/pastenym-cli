@@ -47,7 +47,7 @@ test: build
 	sleep 3
 
 	echo "Get a paste URL"
-	./${BINARY_FOLDER}/${BINARY_NAME} -id https://pastenym.ch/#/5c3g1-uJ&key=6x23zeietv45ho9jlx7o4in1045qh2c3
+	./${BINARY_FOLDER}/${BINARY_NAME} -id "https://pastenym.ch/#/5c3g1-uJ&key=6x23zeietv45ho9jlx7o4in1045qh2c3"
 
 	sleep 3
 
@@ -57,12 +57,12 @@ test: build
 	sleep 3
 
 	echo "Get a paste from IPFS"
-	./${BINARY_FOLDER}/${BINARY_NAME} -id https://pastenym.ch/#/SPeNlLtY&key=l72u6pj1y2hf26oz1fok9qx4rjdjo7wj
+	./${BINARY_FOLDER}/${BINARY_NAME} -id "https://pastenym.ch/#/SPeNlLtY&key=l72u6pj1y2hf26oz1fok9qx4rjdjo7wj"
 
 	sleep 3
 
 	echo "Get a paste with file"
-	./${BINARY_FOLDER}/${BINARY_NAME} -id https://pastenym.ch/#/VQxVQl2d&key=922fc0f59aeb4ae7493e68bd0a252c12
+	./${BINARY_FOLDER}/${BINARY_NAME} -id "https://pastenym.ch/#/VQxVQl2d&key=922fc0f59aeb4ae7493e68bd0a252c12"
 
 
 

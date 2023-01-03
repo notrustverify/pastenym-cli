@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"os"
 
+	F "pastenym-cli/utils"
+
 	"github.com/gorilla/websocket"
 )
 
@@ -31,13 +33,7 @@ type connection struct {
 // store payload data user
 type clearObjectUser struct {
 	Text string `json:"text"`
-	File File   `json:"file"`
-}
-
-type File struct {
-	Data     []byte `json:"data"`
-	Filename string `json:"filename"`
-	MimeType string `json:"mimeType"`
+	File F.File `json:"file"`
 }
 
 type encParams struct {
@@ -76,7 +72,7 @@ func main() {
 	text := flag.String("text", "", "Specify the text to share. Mandatory")
 
 	// to be implemented
-	//file := flag.String("file", "", "Specify the path for a file to share. Default is empty")
+	file := flag.String("file", "", "Specify the path for a file to share. Default is empty")
 
 	urlId := flag.String("id", "", "Specify paste url id to retrieve. Default is empty")
 	key := flag.String("key", "", "Key for getting the plaintext")
@@ -97,7 +93,7 @@ func main() {
 	stat, _ := os.Stdin.Stat()
 	if (stat.Mode() & os.ModeCharDevice) == 0 {
 		*text = getFromPipe()
-	} else if *text == "" && *urlId == "" {
+	} else if *text == "" && *urlId == "" && *file == "" {
 		fmt.Printf("\nVersion: %s\n%s-text or -id is mandatory%s\n", VERSION, Red, Reset)
 		flag.Usage()
 		os.Exit(1)
@@ -108,7 +104,7 @@ func main() {
 	connectionData.instance = *instance
 	connectionData.ws = *newConnection()
 
-	if *text != "" {
+	if *text != "" || *file != "" {
 		if (*public || *burn) && *ipfs {
 			fmt.Printf("\n%sIPFS paste cannot be public or burned%s\n", Red, Reset)
 			os.Exit(1)
@@ -117,9 +113,23 @@ func main() {
 
 		selfAddress := getSelfAddress()
 
+		var userFile F.File
+		var successFile bool
+		var errorMsg string
+		if *file != "" {
+			successFile, userFile, errorMsg = F.ReadFile(*file)
+			if !successFile {
+				fmt.Printf("\n%sError with file %s, %s%s\n", Red, userFile.Filename, errorMsg, Reset)
+				userFile = F.File{}
+
+				connectionData.ws.Close()
+				os.Exit(1)
+			}
+		}
+
 		plaintext, err := json.Marshal(clearObjectUser{
 			Text: *text,
-			File: File{},
+			File: userFile,
 		})
 		if err != nil {
 			panic(err.Error())
@@ -189,6 +199,7 @@ func newConnection() *websocket.Conn {
 	}
 
 	return conn
+
 }
 
 func sendTextWithReply(data interface{}) messageReceived {

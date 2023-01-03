@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"os"
+	F "pastenym-cli/utils"
 )
 
 func formatAddPasteVerbose(public bool, urlId string, ipfsHash string, key string) {
@@ -50,7 +52,20 @@ func formatGetPasteContentVerbose(metadata *textRetrieved, userData *clearObject
 		fmt.Printf("\n%sThe paste is now deleted%s\n", Yellow, Reset)
 	}
 
-	fmt.Printf("%s\nPaste content%s\n%s\n", Green, Reset, userData.Text)
+	if userData.File.Filename != "" {
+		currDir, _ := os.Getwd()
+
+		success, filename := F.CreateFile(userData.File.Filename, userData.File.MimeType, &userData.File.Data)
+		if success {
+			fmt.Printf("%s\nFile created:%s %s/%s", Green, Reset, currDir, filename)
+		} else {
+			fmt.Printf("%s\nFile already exists:%s %s", Red, Reset, userData.File.Filename)
+		}
+	}
+	if userData.Text != "" {
+		fmt.Printf("%s\nPaste content%s\n%s", Green, Reset, userData.Text)
+	}
+	fmt.Printf("\n")
 }
 
 func formatGetPasteContentSilent(userData *clearObjectUser) {

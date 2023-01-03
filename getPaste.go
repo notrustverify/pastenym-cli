@@ -84,9 +84,6 @@ func getPaste(urlId string, key string, selfAddress string) (textRetrieved, clea
 		connectionData.ws.Close()
 		os.Exit(1)
 	}
-	if clearObjectUser.File.Filename != "" {
-		fmt.Printf("\n\n%sFile are not supported in pastenym CLI%s", Red, Reset)
-	}
 
 	return textData, clearObjectUser
 
