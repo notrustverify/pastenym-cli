@@ -26,6 +26,11 @@ make
 ./pastenym -text "my text"
 ```
 
+#### With file
+```bash
+./pastenym -text "my text" -file mixnethowto.pdf
+```
+
 ### Pipe a paste
 
 ```bash
