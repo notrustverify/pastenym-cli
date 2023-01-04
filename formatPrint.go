@@ -10,12 +10,15 @@ func formatAddPasteVerbose(public bool, urlId string, ipfsHash string, key strin
 
 	fmt.Printf("\n\n%sID: %s", Green, urlId)
 
+	var link string
 	if !public {
 		fmt.Printf("%s\nKey: %s\n", Green, key)
-		fmt.Printf("\nLink: https://%s/#/%s&key=%s%s", connectionData.instance, urlId, key, Reset)
+		link = fmt.Sprintf("https://%s/#/%s&key=%s", connectionData.instance, urlId, key)
+
 	} else {
-		fmt.Printf("\nLink: https://%s/#/%s%s", connectionData.instance, urlId, Reset)
+		link = fmt.Sprintf("https://%s/#/%s", connectionData.instance, urlId)
 	}
+	fmt.Printf("\nLink: %s%s\n", link, Reset)
 
 	if ipfsHash != "" {
 		fmt.Printf("\nipfs://%s\n", ipfsHash)

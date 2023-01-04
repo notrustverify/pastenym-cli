@@ -12,7 +12,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-const VERSION = "1.0.1"
+const VERSION = "1.1.2"
 
 // event to send when query or add text
 type event string
@@ -94,7 +94,7 @@ func main() {
 	if (stat.Mode() & os.ModeCharDevice) == 0 {
 		*text = getFromPipe()
 	} else if *text == "" && *urlId == "" && *file == "" {
-		fmt.Printf("\nVersion: %s\n%s-text or -id is mandatory%s\n", VERSION, Red, Reset)
+		fmt.Printf("\nVersion: %s\n%s-text, -id or -file is mandatory%s\n", VERSION, Red, Reset)
 		flag.Usage()
 		os.Exit(1)
 	}
@@ -103,6 +103,7 @@ func main() {
 	connectionData.nymClient = *nymClient
 	connectionData.instance = *instance
 	connectionData.ws = *newConnection()
+	defer connectionData.ws.Close()
 
 	if *text != "" || *file != "" {
 		if (*public || *burn) && *ipfs {
@@ -167,7 +168,6 @@ func main() {
 		}
 	}
 
-	connectionData.ws.Close()
 }
 
 func getFromPipe() string {
