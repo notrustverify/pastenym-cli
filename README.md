@@ -1,5 +1,7 @@
 # CLI for pastenym
 
+[![asciicast](https://asciinema.org/a/548628.svg)](https://asciinema.org/a/548628)
+
 ## Prerequisites
 
 * A running [Nym-client](https://nymtech.net/docs/stable/integrations/websocket-client)
