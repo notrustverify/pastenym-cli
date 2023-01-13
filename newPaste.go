@@ -25,11 +25,12 @@ type userDataAdd struct {
 	Text      string    `json:"text"`
 	Private   bool      `json:"private"`
 	Burn      bool      `json:"burn"`
+	BurnView  int       `json:"burn_view"`
 	Ipfs      bool      `json:"ipfs"`
 	EncParams encParams `json:"encParams"`
 }
 
-func newPaste(text string, encryptionParams encParams, selfAddress string, public bool, ipfs bool, burn bool) idNewPaste {
+func newPaste(text string, encryptionParams encParams, selfAddress string, public bool, ipfs bool, burn bool, burnView int) idNewPaste {
 
 	paste := pasteAdd{
 		Event:  newText,
@@ -38,6 +39,7 @@ func newPaste(text string, encryptionParams encParams, selfAddress string, publi
 			Text:      text,
 			Private:   public,
 			Burn:      burn,
+			BurnView:  burnView,
 			Ipfs:      ipfs,
 			EncParams: encryptionParams,
 		},
