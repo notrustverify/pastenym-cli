@@ -44,15 +44,17 @@ func formatGetPasteContentVerbose(metadata *textRetrieved, userData *clearObject
 
 	fmt.Printf("\n\nCreated on: %s", metadata.CreatedOn)
 
-	if metadata.NumView > 0 && !metadata.Burn {
+	if metadata.NumView > 0 && metadata.NumView < metadata.BurnView {
 		fmt.Printf(" - Num views: %d - ", metadata.NumView)
 	} else {
 		fmt.Printf(" - ")
 	}
 	fmt.Printf("ipfs: %t", metadata.Ipfs)
 
-	if metadata.Burn {
+	if metadata.Burn && metadata.NumView >= metadata.BurnView {
 		fmt.Printf("\n%sThe paste is now deleted%s\n", Yellow, Reset)
+	} else {
+		fmt.Printf("\n%sThe paste will be deleted after %d views%s\n", Yellow, metadata.BurnView, Reset)
 	}
 
 	if userData.File.Filename != "" {

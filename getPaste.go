@@ -25,6 +25,7 @@ type textRetrieved struct {
 	NumView   int       `json:"num_view"`
 	CreatedOn string    `json:"created_on"`
 	Burn      bool      `json:"is_burn"`
+	BurnView  int       `json:"burn_view"`
 	Ipfs      bool      `json:"is_ipfs"`
 	EncParams encParams `json:"encParams"`
 }

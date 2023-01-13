@@ -84,6 +84,7 @@ func main() {
 	public := flag.Bool("public", false, "Set the paste to public, i.e without encryption. Default is private")
 	ipfs := flag.Bool("ipfs", false, "Specify if the text to share is stored on IPFS. Default is false")
 	burn := flag.Bool("burn", false, "Specify if the text have to be deleted when read. Default is false")
+	burnView := flag.Int("view", 0, "Specify if the text have to be deleted when read.")
 	debug = flag.Bool("debug", false, "Specify if the text have to be deleted when read. Default is false")
 	silent = flag.Bool("silent", false, "Remove every output, just print data. Default is false")
 	onlyURL = flag.Bool("url", false, "Only print the URL. Default is false")
@@ -140,12 +141,12 @@ func main() {
 		var key string
 
 		if *public {
-			dataUrl = newPaste(string(plaintext), encParams{}, selfAddress, *public, *ipfs, *burn)
+			dataUrl = newPaste(string(plaintext), encParams{}, selfAddress, *public, *ipfs, *burn, *burnView)
 		} else {
 			var encParams encParams
 			var textEncrypted string
 			key, textEncrypted, encParams = encrypt(&plaintext)
-			dataUrl = newPaste(textEncrypted, encParams, selfAddress, *public, *ipfs, *burn)
+			dataUrl = newPaste(textEncrypted, encParams, selfAddress, *public, *ipfs, *burn, *burnView)
 		}
 
 		// show informations
