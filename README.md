@@ -60,6 +60,8 @@ echo "my text" | ./pastenym
 Usage of pastenym:
   --burn
     	Specify if the text have to be deleted when read. Default is false
+  --view int
+    	Specify if the text have to be deleted when read.
   --debug
     	Specify if the text have to be deleted when read. Default is false
   --id string
