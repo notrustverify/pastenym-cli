@@ -84,5 +84,7 @@ Usage of pastenym:
     	Specify the text to share. Mandatory
   --url
     	Only print the URL. Default is false
+  --ping
+    	Ping the backend to see if it's alive. Return the version
 
 ```

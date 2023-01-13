@@ -77,3 +77,11 @@ func formatGetPasteContentSilent(userData *clearObjectUser) {
 	fmt.Printf("%s", userData.Text)
 
 }
+
+func formatPing(pingData *pingReceived) {
+	if pingData.Alive {
+		fmt.Printf("\n\nBackend: %sOnline%s\nRunning version: %s\n", Green, Reset, pingData.Version)
+	} else {
+		fmt.Printf("\n\nBackend: %sOffline%s\n", Red, Reset)
+	}
+}

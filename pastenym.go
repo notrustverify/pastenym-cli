@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	F "pastenym-cli/utils"
 
@@ -20,6 +21,7 @@ type event string
 const (
 	newText event = "newText"
 	getText event = "getText"
+	ping    event = "ping"
 )
 
 // handle connection parameters
@@ -77,7 +79,7 @@ func main() {
 	urlId := flag.String("id", "", "Specify paste url id to retrieve. Default is empty")
 	key := flag.String("key", "", "Key for getting the plaintext")
 
-	provider := flag.String("provider", "6y7sSj3dKp5AESnet1RQXEHmKkEx8Bv3RgwEJinGXv6J.FZfu6hNPi1hgQfu7crbXXUNLtr3qbKBWokjqSpBEeBMV@EBT8jTD8o4tKng2NXrrcrzVhJiBnKpT1bJy5CMeArt2w", "Specify the path for a file to share. Default is empty")
+	provider := flag.String("provider", "HWm3757chNdBq9FzKEY9j9VJ5siRxH8ukrNqYwFp9Unp.D34iYLRd5vzpCU4nZRcFVmoZpTQQMa6mws4Q65LdRosi@Fo4f4SQLdoyoGkFae5TpVhRVoXCF8UiypLVGtGjujVPf", "Specify the path for a file to share. Default is empty")
 	nymClient := flag.String("nymclient", "127.0.0.1:1977", "Nym client to connect")
 	instance := flag.String("instance", "pastenym.ch", "Instance where to get the paste from GUI")
 
@@ -85,6 +87,7 @@ func main() {
 	ipfs := flag.Bool("ipfs", false, "Specify if the text to share is stored on IPFS. Default is false")
 	burn := flag.Bool("burn", false, "Specify if the text have to be deleted when read. Default is false")
 	burnView := flag.Int("view", 0, "Specify if the text have to be deleted when read.")
+	ping := flag.Bool("ping", false, "Ping the backend to see if it's alive. Return the version")
 	debug = flag.Bool("debug", false, "Specify if the text have to be deleted when read. Default is false")
 	silent = flag.Bool("silent", false, "Remove every output, just print data. Default is false")
 	onlyURL = flag.Bool("url", false, "Only print the URL. Default is false")
@@ -94,7 +97,7 @@ func main() {
 	stat, _ := os.Stdin.Stat()
 	if (stat.Mode() & os.ModeCharDevice) == 0 {
 		*text = getFromPipe()
-	} else if *text == "" && *urlId == "" && *file == "" {
+	} else if !*ping && *text == "" && *urlId == "" && *file == "" {
 		fmt.Printf("\nVersion: %s\n%s-text, -id or -file is mandatory%s\n", VERSION, Red, Reset)
 		flag.Usage()
 		os.Exit(1)
@@ -106,15 +109,19 @@ func main() {
 	connectionData.ws = *newConnection()
 	defer connectionData.ws.Close()
 
+	selfAddress := getSelfAddress()
+	if *ping {
+		pingData := pingBackend(selfAddress)
+		formatPing(&pingData)
+	}
+
 	if *text != "" || *file != "" {
 		if (*public || *burn) && *ipfs {
 			fmt.Printf("\n%sIPFS paste cannot be public or burned%s\n", Red, Reset)
 			os.Exit(1)
 		}
+
 		// create a new paste
-
-		selfAddress := getSelfAddress()
-
 		var userFile F.File
 		var successFile bool
 		var errorMsg string
@@ -188,7 +195,9 @@ func getFromPipe() string {
 
 func newConnection() *websocket.Conn {
 	uri := "ws://" + connectionData.nymClient
+
 	conn, _, err := websocket.DefaultDialer.Dial(uri, nil)
+
 	if err != nil {
 		defer conn.Close()
 		fmt.Printf("%s\nError: No connection to nym-client %s%s\n\nIs it started ?\nHow to run one https://nymtech.net/docs/stable/integrations/websocket-client\n\n", Red, uri, Reset)
@@ -203,7 +212,7 @@ func newConnection() *websocket.Conn {
 
 }
 
-func sendTextWithReply(data interface{}) messageReceived {
+func sendTextWithReply(data interface{}, timeout uint) messageReceived {
 	//copied from https://github.com/nymtech/nym/blob/develop/clients/native/examples/go-examples/websocket/text/textsend.go
 
 	pasteJson, err := json.Marshal(data)
@@ -234,7 +243,21 @@ func sendTextWithReply(data interface{}) messageReceived {
 	if !*silent && !*onlyURL {
 		fmt.Printf("waiting to receive a message from the mix network")
 	}
+	if timeout > 0 {
+		connectionData.ws.UnderlyingConn().SetDeadline(time.Now().Add(time.Duration(timeout) * time.Second))
+	}
+
 	_, receivedMessage, err := connectionData.ws.ReadMessage()
+
+	if err != nil && timeout > 0 {
+
+		return messageReceived{
+			Type:    "error",
+			Message: "nok",
+		}
+
+	}
+
 	if err != nil {
 		panic(err)
 	}

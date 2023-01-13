@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"runtime"
 	"strings"
 )
@@ -14,6 +15,17 @@ var Purple = "\033[35m"
 var Cyan = "\033[36m"
 var Gray = "\033[37m"
 var White = "\033[97m"
+
+type pingMessage struct {
+	Event  event  `json:"event"`
+	Sender string `json:"sender"`
+	Data   string `json:"data"`
+}
+
+type pingReceived struct {
+	Version string `json:"version"`
+	Alive   bool
+}
 
 func extractLink(link string) (string, string) {
 	var urlId string
@@ -42,5 +54,30 @@ func initColor() {
 		Cyan = ""
 		Gray = ""
 		White = ""
+	}
+}
+
+func pingBackend(selfAddress string) pingReceived {
+	pingMessage := pingMessage{
+		Event:  ping,
+		Sender: selfAddress,
+		Data:   "emtpy",
+	}
+
+	receivedMessage := sendTextWithReply(pingMessage, 8)
+
+	if receivedMessage.Type == "error" {
+		return pingReceived{Version: "0.0.0", Alive: false}
+	} else {
+		messageByte := []byte(receivedMessage.Message)[9:]
+
+		var pingData pingReceived
+		err := json.Unmarshal(messageByte, &pingData)
+		if err != nil {
+
+			panic(err)
+		}
+
+		return pingData
 	}
 }

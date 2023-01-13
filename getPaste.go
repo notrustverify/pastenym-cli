@@ -50,7 +50,7 @@ func getPaste(urlId string, key string, selfAddress string) (textRetrieved, clea
 		Data:   urlIdData,
 	}
 
-	receivedMessage := sendTextWithReply(&textToGet)
+	receivedMessage := sendTextWithReply(&textToGet, 0)
 	messageByte := []byte(receivedMessage.Message)[9:]
 	var textData textRetrieved
 	err := json.Unmarshal(messageByte, &textData)
