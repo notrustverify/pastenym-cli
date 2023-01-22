@@ -53,7 +53,7 @@ func formatGetPasteContentVerbose(metadata *textRetrieved, userData *clearObject
 
 	if metadata.Burn && metadata.NumView >= metadata.BurnView {
 		fmt.Printf("\n%sThe paste is now deleted%s\n", Yellow, Reset)
-	} else {
+	} else if metadata.Burn {
 		fmt.Printf("\n%sThe paste will be deleted after %d views%s\n", Yellow, metadata.BurnView, Reset)
 	}
 

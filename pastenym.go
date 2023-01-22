@@ -13,7 +13,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-const VERSION = "1.1.3"
+const VERSION = "1.1.4"
 
 // event to send when query or add text
 type event string
@@ -87,6 +87,8 @@ func main() {
 	ipfs := flag.Bool("ipfs", false, "Specify if the text to share is stored on IPFS. Default is false")
 	burn := flag.Bool("burn", false, "Specify if the text have to be deleted when read. Default is false")
 	burnView := flag.Int("view", 0, "Specify if the text have to be deleted when read.")
+	expirationTime := flag.String("time", "", "Specify a relative time interval when the paste have to be deleted. For example 1d, 1m, 10h")
+	expirationHeight := flag.Int("height", -1, "Specify a Bitcoin block height when the paste have to be deleted")
 	ping := flag.Bool("ping", false, "Ping the backend to see if it's alive. Return the version")
 	debug = flag.Bool("debug", false, "Specify if the text have to be deleted when read. Default is false")
 	silent = flag.Bool("silent", false, "Remove every output, just print data. Default is false")
@@ -148,12 +150,12 @@ func main() {
 		var key string
 
 		if *public {
-			dataUrl = newPaste(string(plaintext), encParams{}, selfAddress, *public, *ipfs, *burn, *burnView)
+			dataUrl = newPaste(string(plaintext), encParams{}, selfAddress, *public, *ipfs, *burn, *burnView, *expirationTime, *expirationHeight)
 		} else {
 			var encParams encParams
 			var textEncrypted string
 			key, textEncrypted, encParams = encrypt(&plaintext)
-			dataUrl = newPaste(textEncrypted, encParams, selfAddress, *public, *ipfs, *burn, *burnView)
+			dataUrl = newPaste(textEncrypted, encParams, selfAddress, *public, *ipfs, *burn, *burnView, *expirationTime, *expirationHeight)
 		}
 
 		// show informations
