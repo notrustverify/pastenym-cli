@@ -22,26 +22,30 @@ type pasteAdd struct {
 
 // informations to set for adding a paste
 type userDataAdd struct {
-	Text      string    `json:"text"`
-	Private   bool      `json:"private"`
-	Burn      bool      `json:"burn"`
-	BurnView  int       `json:"burn_view"`
-	Ipfs      bool      `json:"ipfs"`
-	EncParams encParams `json:"encParams"`
+	Text             string    `json:"text"`
+	Private          bool      `json:"private"`
+	Burn             bool      `json:"burn"`
+	BurnView         int       `json:"burn_view"`
+	Ipfs             bool      `json:"ipfs"`
+	ExpirationTime   string    `json:"expiration_time"`
+	ExpirationHeight int       `json:"expiration_height"`
+	EncParams        encParams `json:"encParams"`
 }
 
-func newPaste(text string, encryptionParams encParams, selfAddress string, public bool, ipfs bool, burn bool, burnView int) idNewPaste {
+func newPaste(text string, encryptionParams encParams, selfAddress string, public bool, ipfs bool, burn bool, burnView int, expirationTime string, expirationHeight int) idNewPaste {
 
 	paste := pasteAdd{
 		Event:  newText,
 		Sender: selfAddress,
 		Data: userDataAdd{
-			Text:      text,
-			Private:   public,
-			Burn:      burn,
-			BurnView:  burnView,
-			Ipfs:      ipfs,
-			EncParams: encryptionParams,
+			Text:             text,
+			Private:          public,
+			Burn:             burn,
+			BurnView:         burnView,
+			ExpirationTime:   expirationTime,
+			ExpirationHeight: expirationHeight,
+			Ipfs:             ipfs,
+			EncParams:        encryptionParams,
 		},
 	}
 
