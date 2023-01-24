@@ -51,7 +51,23 @@ echo "my text" | ./pastenym
 ```bash
 ./pastenym -id https://pastenym.ch/#/x4jO7s4W&key=b5hstfjtd6ojkuwsj9a46di964qreocf
 ```
+#### Create a paste with time expiration
 
+You could set with by using relative time when a paste will expire
+
+```bash
+./pastenym -text "my text" -time 10minute
+```
+
+The current relative time definition are supported
+| Long | Short |
+|--|--|
+| minute | m |
+| hour | h |
+| day | d |
+| week | w |
+| month | - |
+| year | y|
 
 ## Usage
 
