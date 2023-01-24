@@ -58,33 +58,39 @@ echo "my text" | ./pastenym
 
 ```
 Usage of pastenym:
-  --burn
+  -burn
     	Specify if the text have to be deleted when read. Default is false
-  --view int
-    	Specify if the text have to be deleted when read.
-  --debug
+  -debug
     	Specify if the text have to be deleted when read. Default is false
-  --id string
+  -file string
+    	Specify the path for a file to share. Default is empty
+  -height int
+    	Specify a Bitcoin block height when the paste have to be deleted (default -1)
+  -id string
     	Specify paste url id to retrieve. Default is empty
-  --instance string
+  -instance string
     	Instance where to get the paste from GUI (default "pastenym.ch")
-  --ipfs
+  -ipfs
     	Specify if the text to share is stored on IPFS. Default is false
-  --key string
+  -key string
     	Key for getting the plaintext
-  --nymclient string
+  -nymclient string
     	Nym client to connect (default "127.0.0.1:1977")
-  --provider string
-    	Specify the path for a file to share. Default is empty (default "6y7sSj3dKp5AESnet1RQXEHmKkEx8Bv3...")
-  --public
-    	Set the paste to public, i.e without encryption. Default is private
-  --silent
-    	Remove every output, just print data. Default is false
-  --text string
-    	Specify the text to share. Mandatory
-  --url
-    	Only print the URL. Default is false
-  --ping
+  -ping
     	Ping the backend to see if it's alive. Return the version
+  -provider string
+    	Specify the provider. (default "HWm3757chNdBq9FzKEY9j9VJ5siRxH8ukrNqYwFp9Unp.D34iYLRd5vzpCU4nZRcFVmoZpTQQMa6mws4Q65LdRosi@Fo4f4SQLdoyoGkFae5TpVhRVoXCF8UiypLVGtGjujVPf")
+  -public
+    	Set the paste to public, i.e without encryption. Default is private
+  -silent
+    	Remove every output, just print data. Default is false
+  -text string
+    	Specify the text to share. Mandatory
+  -time string
+    	Specify a relative time interval when the paste have to be deleted. For example 1d, 1m, 10h
+  -url
+    	Only print the URL. Default is false
+  -view int
+    	Specify if the text have to be deleted when read.
 
 ```
