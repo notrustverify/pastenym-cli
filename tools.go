@@ -16,6 +16,11 @@ var Cyan = "\033[36m"
 var Gray = "\033[37m"
 var White = "\033[97m"
 
+type capababilities struct {
+	IpfsHosting             bool `json:"ipfs_hosting"`
+	ExpirationBitcoinHeight bool `json:"expiration_bitcoin_height"`
+}
+
 type pingMessage struct {
 	Event  event  `json:"event"`
 	Sender string `json:"sender"`
@@ -23,8 +28,9 @@ type pingMessage struct {
 }
 
 type pingReceived struct {
-	Version string `json:"version"`
-	Alive   bool
+	Version      string         `json:"version"`
+	Capabilities capababilities `json:"capabilities"`
+	Alive        bool
 }
 
 func extractLink(link string) (string, string) {

@@ -13,7 +13,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-const VERSION = "1.1.4"
+const VERSION = "1.2.4"
 
 // event to send when query or add text
 type event string

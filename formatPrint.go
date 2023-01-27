@@ -81,6 +81,28 @@ func formatGetPasteContentSilent(userData *clearObjectUser) {
 func formatPing(pingData *pingReceived) {
 	if pingData.Alive {
 		fmt.Printf("\n\nBackend: %sOnline%s\nRunning version: %s\n", Green, Reset, pingData.Version)
+
+		fmt.Printf("Backend functions:\n")
+
+		fmt.Printf("\tExpired block height supported: ")
+
+		var supportedColor = Green
+		if pingData.Capabilities.ExpirationBitcoinHeight {
+			supportedColor = Green
+		} else {
+			supportedColor = Red
+		}
+		fmt.Printf("%s%t%s\n", supportedColor, pingData.Capabilities.ExpirationBitcoinHeight, Reset)
+
+		var supportedColorIpfs = Green
+		if pingData.Capabilities.IpfsHosting {
+			supportedColorIpfs = Green
+		} else {
+			supportedColorIpfs = Red
+		}
+		fmt.Printf("\tIPFS storage supported: ")
+		fmt.Printf("%s%t%s\n", supportedColorIpfs, pingData.Capabilities.IpfsHosting, Reset)
+
 	} else {
 		fmt.Printf("\n\nBackend: %sOffline%s\n", Red, Reset)
 	}
