@@ -49,7 +49,7 @@ func newPaste(text string, encryptionParams encParams, selfAddress string, publi
 		},
 	}
 
-	receivedMessage := sendTextWithReply(&paste, 0)
+	receivedMessage := sendTextWithReply(&paste, 0, false)
 	messageByte := []byte(receivedMessage.Message)[9:]
 
 	if strings.Contains(strings.ToLower(receivedMessage.Message), "error") {

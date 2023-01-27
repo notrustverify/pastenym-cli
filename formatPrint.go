@@ -80,7 +80,7 @@ func formatGetPasteContentSilent(userData *clearObjectUser) {
 
 func formatPing(pingData *pingReceived) {
 	if pingData.Alive {
-		fmt.Printf("\n\nBackend: %sOnline%s\nRunning version: %s\n", Green, Reset, pingData.Version)
+		fmt.Printf("\nBackend: %sOnline%s\nRunning version: %s\n", Green, Reset, pingData.Version)
 
 		fmt.Printf("Backend functions:\n")
 
@@ -104,6 +104,6 @@ func formatPing(pingData *pingReceived) {
 		fmt.Printf("%s%t%s\n", supportedColorIpfs, pingData.Capabilities.IpfsHosting, Reset)
 
 	} else {
-		fmt.Printf("\n\nBackend: %sOffline%s\n", Red, Reset)
+		fmt.Printf("\nBackend: %sOffline%s\n", Red, Reset)
 	}
 }

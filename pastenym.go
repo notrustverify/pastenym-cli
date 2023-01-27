@@ -113,7 +113,7 @@ func main() {
 
 	selfAddress := getSelfAddress()
 	if *ping {
-		pingData := pingBackend(selfAddress)
+		pingData := pingBackend(selfAddress, false)
 		formatPing(&pingData)
 	}
 
@@ -148,6 +148,12 @@ func main() {
 
 		var dataUrl idNewPaste
 		var key string
+
+		pingRes := pingBackend(selfAddress, true)
+		if !pingRes.Alive {
+			formatPing(&pingRes)
+			os.Exit(1)
+		}
 
 		if *public {
 			dataUrl = newPaste(string(plaintext), encParams{}, selfAddress, *public, *ipfs, *burn, *burnView, *expirationTime, *expirationHeight)
@@ -214,7 +220,7 @@ func newConnection() *websocket.Conn {
 
 }
 
-func sendTextWithReply(data interface{}, timeout uint) messageReceived {
+func sendTextWithReply(data interface{}, timeout uint, testBackendAlive bool) messageReceived {
 	//copied from https://github.com/nymtech/nym/blob/develop/clients/native/examples/go-examples/websocket/text/textsend.go
 
 	pasteJson, err := json.Marshal(data)
@@ -242,7 +248,7 @@ func sendTextWithReply(data interface{}, timeout uint) messageReceived {
 		panic(err)
 	}
 
-	if !*silent && !*onlyURL {
+	if (!*silent && !*onlyURL) && !testBackendAlive {
 		fmt.Printf("waiting to receive a message from the mix network")
 	}
 	if timeout > 0 {

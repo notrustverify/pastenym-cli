@@ -63,14 +63,14 @@ func initColor() {
 	}
 }
 
-func pingBackend(selfAddress string) pingReceived {
+func pingBackend(selfAddress string, testBackendAlive bool) pingReceived {
 	pingMessage := pingMessage{
 		Event:  ping,
 		Sender: selfAddress,
 		Data:   "emtpy",
 	}
 
-	receivedMessage := sendTextWithReply(pingMessage, 8)
+	receivedMessage := sendTextWithReply(pingMessage, 8, testBackendAlive)
 
 	if receivedMessage.Type == "error" {
 		return pingReceived{Version: "0.0.0", Alive: false}
