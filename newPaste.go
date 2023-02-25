@@ -33,6 +33,7 @@ type userDataAdd struct {
 }
 
 func newPaste(text string, encryptionParams encParams, selfAddress string, public bool, ipfs bool, burn bool, burnView int, expirationTime string, expirationHeight int) idNewPaste {
+	HEADERS_PADDING_SIZE := 54
 
 	paste := pasteAdd{
 		Event:  newText,
@@ -50,7 +51,7 @@ func newPaste(text string, encryptionParams encParams, selfAddress string, publi
 	}
 
 	receivedMessage := sendTextWithReply(&paste, 0, false)
-	messageByte := []byte(receivedMessage.Message)[9:]
+	messageByte := []byte(receivedMessage.Message)[HEADERS_PADDING_SIZE:]
 
 	if strings.Contains(strings.ToLower(receivedMessage.Message), "error") {
 		errMsg := strings.ToLower(receivedMessage.Message)

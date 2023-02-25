@@ -54,7 +54,7 @@ type encParams struct {
 type messageReceived struct {
 	Type      string `json:"type"`
 	Message   string `json:"message"`
-	SenderTag string `json:"senderTage"`
+	SenderTag string `json:"senderTag"`
 }
 
 type ErrorMessage struct {
@@ -228,13 +228,15 @@ func sendTextWithReply(data interface{}, timeout uint, testBackendAlive bool) me
 		panic(err)
 	}
 
-	// append 9 0x00 bytes to set kind of message
-	modifiedPasteJson := append(make([]byte, 9), pasteJson...)
+	pasteJsonStr := fmt.Sprintf("%s%s%s", ".", "{\"mimeType\":\"application/json\",\"headers\":null}", pasteJson)
+	// append 7 0x00 bytes to set kind of message
+	modifiedPasteJson := append(make([]byte, 7), pasteJsonStr...)
 
 	sendRequest, err := json.Marshal(map[string]interface{}{
-		"type":      "send",
-		"recipient": connectionData.provider,
-		"message":   modifiedPasteJson,
+		"type":       "sendAnonymous",
+		"recipient":  connectionData.provider,
+		"message":    modifiedPasteJson,
+		"replySurbs": 2,
 	})
 	if err != nil {
 		panic(err)
@@ -271,7 +273,7 @@ func sendTextWithReply(data interface{}, timeout uint, testBackendAlive bool) me
 	}
 
 	if *debug {
-		fmt.Printf("received %v from the mix network!\n", string(receivedMessage))
+		fmt.Printf("\nreceived %v from the mix network!\n", string(receivedMessage))
 	}
 
 	var receivedMessageJSON messageReceived
