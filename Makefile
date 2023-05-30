@@ -4,7 +4,7 @@ BINARY_FOLDER=bin
 all: build
 
 build:
-	go build -o ${BINARY_NAME} *.go
+	go build -o ./bin/${BINARY_NAME} *.go
 
 compile:
 	echo "Compiling for every OS and Platform"

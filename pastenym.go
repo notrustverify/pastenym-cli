@@ -228,12 +228,10 @@ func sendTextWithReply(data interface{}, timeout uint, testBackendAlive bool) me
 		panic(err)
 	}
 
-	modifiedPasteJson := pasteJson
-
 	sendRequest, err := json.Marshal(map[string]interface{}{
 		"type":       "sendAnonymous",
 		"recipient":  connectionData.provider,
-		"message":    modifiedPasteJson,
+		"message":    pasteJson,
 		"replySurbs": 20,
 	})
 	if err != nil {
