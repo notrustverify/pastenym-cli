@@ -255,6 +255,10 @@ func sendTextWithReply(data interface{}, timeout uint, testBackendAlive bool) me
 	}
 	if timeout > 0 {
 		connectionData.ws.UnderlyingConn().SetDeadline(time.Now().Add(time.Duration(timeout) * time.Second))
+	} else {
+		// if people send files the timeout could be hit, adding a longer timeout
+		var timeout = 10000
+		connectionData.ws.UnderlyingConn().SetDeadline(time.Now().Add(time.Duration(timeout) * time.Second))
 	}
 
 	_, receivedMessage, err := connectionData.ws.ReadMessage()

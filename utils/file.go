@@ -2,7 +2,6 @@ package utils
 
 import (
 	"errors"
-	"math"
 	"os"
 	"strings"
 
@@ -47,9 +46,9 @@ func ReadFile(filePath string) (bool, File, string) {
 			return false, File{Filename: filename}, "Folders are not supported"
 		}
 
-		if fStat.Size() >= int64(6*math.Pow10(6)) {
-			return false, File{Filename: filename}, "File too big for the mixnet"
-		}
+		//if fStat.Size() >= int64(6*math.Pow10(6)) {
+		//	return false, File{Filename: filename}, "File too big for the mixnet"
+		//}
 		content, err := os.ReadFile(filePath)
 		mtype := mimetype.Detect(content)
 		if err != nil {
