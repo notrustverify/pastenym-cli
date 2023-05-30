@@ -228,14 +228,10 @@ func sendTextWithReply(data interface{}, timeout uint, testBackendAlive bool) me
 		panic(err)
 	}
 
-	pasteJsonStr := fmt.Sprintf("%s%s%s", ".", "{\"mimeType\":\"application/json\",\"headers\":null}", pasteJson)
-	// append 7 0x00 bytes to set kind of message
-	modifiedPasteJson := append(make([]byte, 7), pasteJsonStr...)
-
 	sendRequest, err := json.Marshal(map[string]interface{}{
 		"type":       "sendAnonymous",
 		"recipient":  connectionData.provider,
-		"message":    modifiedPasteJson,
+		"message":    pasteJson,
 		"replySurbs": 20,
 	})
 	if err != nil {

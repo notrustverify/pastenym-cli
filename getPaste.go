@@ -31,7 +31,6 @@ type textRetrieved struct {
 }
 
 func getPaste(urlId string, key string, selfAddress string) (textRetrieved, clearObjectUser) {
-	HEADERS_PADDING_SIZE := 54
 
 	var urlIdData userDataRetrieve
 	urlIdData.UrlId = urlId
@@ -52,7 +51,7 @@ func getPaste(urlId string, key string, selfAddress string) (textRetrieved, clea
 	}
 
 	receivedMessage := sendTextWithReply(&textToGet, 0, false)
-	messageByte := []byte(receivedMessage.Message)[HEADERS_PADDING_SIZE:]
+	messageByte := []byte(receivedMessage.Message)
 	var textData textRetrieved
 	err := json.Unmarshal(messageByte, &textData)
 	if err != nil {

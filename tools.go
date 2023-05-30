@@ -64,7 +64,6 @@ func initColor() {
 }
 
 func pingBackend(selfAddress string, testBackendAlive bool) pingReceived {
-	HEADERS_PADDING_SIZE := 54
 
 	pingMessage := pingMessage{
 		Event: ping,
@@ -76,7 +75,7 @@ func pingBackend(selfAddress string, testBackendAlive bool) pingReceived {
 	if receivedMessage.Type == "error" {
 		return pingReceived{Version: "0.0.0", Alive: false}
 	} else {
-		messageByte := []byte(receivedMessage.Message)[HEADERS_PADDING_SIZE:]
+		messageByte := []byte(receivedMessage.Message)
 
 		var pingData pingReceived
 		err := json.Unmarshal(messageByte, &pingData)
