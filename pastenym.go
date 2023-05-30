@@ -300,9 +300,12 @@ func getSelfAddress() string {
 	responseJSON := make(map[string]interface{})
 
 	// if a message hasn't been delivered, the nym-client forward it after pastenym-cli started again and then it panic
+	var retry = 0
+	var maxRetry = 25
 	for {
+		retry++
 		err = connectionData.ws.ReadJSON(&responseJSON)
-		if err == nil {
+		if err == nil || retry >= maxRetry {
 			break
 		}
 
