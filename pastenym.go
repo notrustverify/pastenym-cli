@@ -236,7 +236,7 @@ func sendTextWithReply(data interface{}, timeout uint, testBackendAlive bool) me
 		"type":       "sendAnonymous",
 		"recipient":  connectionData.provider,
 		"message":    modifiedPasteJson,
-		"replySurbs": 2,
+		"replySurbs": 20,
 	})
 	if err != nil {
 		panic(err)
@@ -298,9 +298,14 @@ func getSelfAddress() string {
 	}
 
 	responseJSON := make(map[string]interface{})
-	err = connectionData.ws.ReadJSON(&responseJSON)
-	if err != nil {
-		panic(err)
+
+	// if a message hasn't been delivered, the nym-client forward it after pastenym-cli started again and then it panic
+	for {
+		err = connectionData.ws.ReadJSON(&responseJSON)
+		if err == nil {
+			break
+		}
+
 	}
 
 	return responseJSON["address"].(string)
